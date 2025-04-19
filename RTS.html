@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<head>
+<title>Turn Based Strategy</title>
+
+<style type="text/css">
+body{
+    background-color: rgb(46, 51, 71);
+}
+#Info{
+    position: absolute;
+}
+.Infos{
+    display:flex;
+    width: 120px;
+}
+.Infos *{
+    max-width: auto;
+    position:relative;
+}
+.InfoAmount{
+    background-color: rgba(0, 0, 0, 0.26);
+    width: 100px;
+    height: 20px;
+    border-color: black;
+    border: solid;
+}
+.InfoAmount *{
+    color: white;
+}
+.InfoWorkers{
+    
+    background-color: rgba(0, 0, 0, 0.26);
+    width: 20px;
+    height: 20px;
+    border-color: black;
+    border: solid;
+}
+.InfoWorkers *{
+    color: white;
+}
+#Map{
+    width: 200px;
+    height: 200px;
+    bottom: 5%;
+    right: 5%;
+    position: absolute;
+    background-color: rgb(32, 32, 32);
+}
+
+#Toolbar{
+    bottom: 5%;
+    left: 20px;
+    position: absolute;
+    width: 300px;
+    height: 100px;
+    background-color: rgb(32, 32, 32);
+}
+#CellContainer{
+    width: 2100px;
+    height: 200%;
+    /*background-color: rgba(0, 255, 255, 0.233);*/
+    position: absolute;
+    
+    
+}
+#CellContainer *{
+    display: grid;
+    float: left;
+    margin-right: 1px;
+    margin-bottom: 1px;
+    
+}
+
+</style>
+</head>
+
+<body>
+    <div id="Square" style="width: 100%;height:100%; background-color: rgb(0, 0, 0); z-index: -10; left: 0px;top: 0px; position: absolute;overflow: hidden;">
+        <div id="CellContainer">
+
+        </div>
+    </div>
+    <div id="Info" style="max-width: 120px; overflow: hidden;">
+        <div id="Food" class="Infos">
+            <div id="FoodAmount" class="InfoAmount">
+                <a>Food: 0</a>
+                
+            </div>
+            <div id="FoodWorkers" class="InfoWorkers">
+                <a>0</a>
+            </div>
+        </div>
+
+        <div id="Wood" class="Infos">
+            <div id="WoodAmount" class="InfoAmount">
+                <a>Wood: 0</a>
+                
+            </div>
+            <div id="WoodWorkers" class="InfoWorkers">
+                <a>0</a>
+            </div>
+        </div>
+        
+        <div id="Iron" class="Infos">
+            <div id="IronAmount" class="InfoAmount">
+                <a>Iron: 0</a>
+                
+            </div>
+            <div id="IronWorkers" class="InfoWorkers">
+                <a>0</a>
+            </div>
+        </div>
+    </div>
+    <div id="Map"></div>
+    <div id="Toolbar"></div>
+
+<script>
+    //Initiate the world as a grid
+//setup a worker class
+//setup a basic attacker class
+//setup a tree and an ore class
+//setup a way to build things with the build button
+//setup should spawn the resources and stuff alongside 5 workers at first
+//Make the field zoomed in and make it able to be moved around and it cant go outside Squares borders
+let MovingWorker = 0
+let BarracksFlag = false
+let FarmFlag = false
+class Worker{
+    constructor(Race,moveToX,moveToY){
+        this.Race = Race
+        this.x = moveToX
+        this.y = moveToY
+        this.workQueue = [] //add the job to queue with name and coordinate
+        this.MoveQueue = []
+        this.Selected = false
+    }
+    Move(){
+        
+        
+        if(this.MoveQueue.length > 0){
+            var WorkerCell = document.getElementById("Cell,"+this.x+","+this.y)
+            WorkerCell.style.backgroundColor = "grey"
+            //console.log(this.x,this.y)
+            grid[this.x][this.y] = 1
+            //console.log(grid[this.x][this.y])
+            WorkerCell.Selected = false
+            this.Selected = false
+            this.x = this.MoveQueue[this.MoveQueue.length-1][0]
+            this.y = this.MoveQueue[this.MoveQueue.length-1][1]
+            
+            //document.getElementById("Cell,"+this.x+","+this.y).style.backgroundColor = "limegreen"
+            if(this.MoveQueue.length == 1){
+                
+                console.log(document.getElementsByClassName("Red").length)
+                while(document.getElementsByClassName("Red").length > 0){
+
+                    document.getElementsByClassName("Red")[0].style.backgroundColor = "grey"
+                    document.getElementsByClassName("Red")[0].className = "None"
+                }
+                this.DrawWorker(true)
+            }
+            else{
+                this.DrawWorker()
+            }
+            
+            
+            this.MoveQueue.pop()
+            
+            MovingWorker = "Cell,"+this.x+","+this.y
+            
+            //grid[this.x][this.y] = 0
+            
+        }
+    }
+    DrawWorker(WorkerFlag = false){
+
+        var WorkerCell = document.getElementById("Cell,"+this.x+","+this.y)
+        grid[this.x][this.y] = 0
+        if(this.Selected || MovingWorker == "Cell,"+this.x+","+this.y){
+            WorkerCell.style.backgroundColor = "limegreen"
+        }
+        else{
+            WorkerCell.style.backgroundColor = "Green"
+        }
+       if(WorkerFlag){
+        WorkerCell.onclick = function WorkerClick(){
+            //console.log("Call")
+            WorkerCell.style.backgroundColor = "Limegreen"
+            for(let i =0;i<WorkerArray.length;i++){
+                WorkerArray[i].Selected = false
+                //get x and y and change color back to green from limegreeen
+            }
+            this.Selected = true
+            var Toolbar = document.getElementById("Toolbar")
+            while(Toolbar.childElementCount > 0){
+                Toolbar.removeChild(Toolbar.lastElementChild)
+            }
+            var buildButton = document.createElement("button")
+            buildButton.style.width = "100px"
+            buildButton.style.height = "100px"
+            buildButton.style.backgroundColor = "Grey"
+            buildButton.innerHTML = "Build"
+            buildButton.onclick = function Build(){
+                var buildSpan = document.createElement("div")
+                buildSpan.style.position = "absolute"
+                //buildSpan.style.left = "10px"
+                buildSpan.style.bottom = "5%"
+                buildSpan.style.transform = "translateY(-100px)"
+                buildSpan.style.backgroundColor = "black"
+                buildSpan.style.width = "200px"
+                buildSpan.style.height = "50px"
+                Toolbar.appendChild(buildSpan)
+                var barracksButton = document.createElement("button")
+                barracksButton.style.width = "50px"
+                barracksButton.style.height = "50px"
+                barracksButton.style.backgroundColor = "Grey"
+                barracksButton.innerHTML = "Barracks"
+                barracksButton.onclick = function buildBarracks(){
+                    //discolor 3x3 around the cell
+                    BarracksFlag = true
+                    FarmFlag = false
+                }
+                var FarmBuildingButton = document.createElement("button")
+                FarmBuildingButton.style.width = "50px"
+                FarmBuildingButton.style.height = "50px"
+                FarmBuildingButton.style.backgroundColor = "Grey"
+                FarmBuildingButton.innerHTML = "Farm"
+                FarmBuildingButton.onclick = function buildFarm(){
+                    FarmFlag = true
+                    BarracksFlag = false
+                }
+
+                buildSpan.appendChild(FarmBuildingButton)
+                buildSpan.appendChild(barracksButton)
+                
+            }
+            
+            Toolbar.appendChild(buildButton)
+            MovingWorker = this.id
+
+        }
+    }
+    else{
+        WorkerCell.onclick = function cellOnclick(){
+            cellOnClickFunction(this)
+            
+        }
+    }
+    }
+}
+MovingCells = 0
+let grid = []
+function Setup(){
+    for(let i = 0;i<100;i++){
+        row = []
+        for(let j = 0;j<100;j++){
+            Cell = document.createElement("div")
+            Cell.id = "Cell,"+i+","+j
+            Cell.style.width = "20px"
+            Cell.style.height = "20px"
+            Cell.style.position = "relative"
+            //Cell.style.left = i*20+"px"
+            //Cell.style.left = j*20+"px"
+            Cell.style.backgroundColor = "grey"
+            Cell.onmouseover = function cellHover(){
+                
+                
+                if(BarracksFlag){
+                    SpaceFlag = true
+                    x = parseInt(this.id.split(",")[1])
+                        y = parseInt(this.id.split(",")[2])
+                    for(let xi = -1;xi<=1;xi++){
+                            for(let yi = -1;yi<=1;yi++){
+                                if(grid[xi+x][yi+y] == 0){
+                                    SpaceFlag = false
+                                }
+                                
+
+                            }
+                        }
+                        if(SpaceFlag){this.style.backgroundColor = "Green"
+                    x = parseInt(this.id.split(",")[1])
+                    y = parseInt(this.id.split(",")[2])
+                    for(let xi = -1;xi<=1;xi++){
+                        for(let yi = -1;yi<=1;yi++){
+                            document.getElementById("Cell,"+(xi+x)+","+(yi+y)).style.backgroundColor = "Green"
+
+                        }
+                    }}
+                    
+                    
+                    
+                }
+
+                if(FarmFlag){
+                    SpaceFlag = true
+                    x = parseInt(this.id.split(",")[1])
+                        y = parseInt(this.id.split(",")[2])
+                    for(let xi = -2;xi<=2;xi++){
+                            for(let yi = -2;yi<=2;yi++){
+                                if(grid[xi+x][yi+y] == 0){
+                                    SpaceFlag = false
+                                }
+                                
+
+                            }
+                        }
+                        if(SpaceFlag){this.style.backgroundColor = "Green"
+                    x = parseInt(this.id.split(",")[1])
+                    y = parseInt(this.id.split(",")[2])
+                    for(let xi = -2;xi<=2;xi++){
+                        for(let yi = -2;yi<=2;yi++){
+                            document.getElementById("Cell,"+(xi+x)+","+(yi+y)).style.backgroundColor = "Green"
+
+                        }
+                    }}
+                    
+                    
+                    
+                }
+            }
+            Cell.onmouseleave = function CellLeave(){
+                SpaceFlag = true
+                if(BarracksFlag){
+                    x = parseInt(this.id.split(",")[1])
+                    y = parseInt(this.id.split(",")[2])
+                    for(let xi = -1;xi<=1;xi++){
+                        for(let yi = -1;yi<=1;yi++){
+                            if(grid[xi+x][yi+y] == 0){
+                                SpaceFlag = false
+                            }
+                            
+
+                        }
+                    }
+                    if(SpaceFlag){
+                        this.style.backgroundColor = "grey"
+                        x = parseInt(this.id.split(",")[1])
+                        y = parseInt(this.id.split(",")[2])
+                        for(let xi = -1;xi<=1;xi++){
+                            for(let yi = -1;yi<=1;yi++){
+                                document.getElementById("Cell,"+(xi+x)+","+(yi+y)).style.backgroundColor = "grey"
+                            }
+                        }
+                    }
+                    
+                }
+
+                if(FarmFlag){
+                    x = parseInt(this.id.split(",")[1])
+                    y = parseInt(this.id.split(",")[2])
+                    for(let xi = -2;xi<=2;xi++){
+                        for(let yi = -2;yi<=2;yi++){
+                            if(grid[xi+x][yi+y] == 0){
+                                SpaceFlag = false
+                            }
+                            
+
+                        }
+                    }
+                    if(SpaceFlag){
+                        this.style.backgroundColor = "grey"
+                        x = parseInt(this.id.split(",")[1])
+                        y = parseInt(this.id.split(",")[2])
+                        for(let xi = -2;xi<=2;xi++){
+                            for(let yi = -2;yi<=2;yi++){
+                                document.getElementById("Cell,"+(xi+x)+","+(yi+y)).style.backgroundColor = "grey"
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            Cell.onclick = function cellOnclick(){
+                cellOnClickFunction(this)
+            }
+            row.push(1)
+            document.getElementById("CellContainer").appendChild(Cell)
+        }
+        grid.push(row)
+    }
+    for(let i = 0;i<5;i++){
+        
+        grid[3+i][5] = 0
+        grid[10+i][12] = 0
+        document.getElementById("Cell,"+(3+i)+","+5).style.backgroundColor = "black"
+        document.getElementById("Cell,"+(10+i)+","+12).style.backgroundColor = "black"
+    }
+    WorkerArray = []
+    
+    OGWorker = new Worker("Base",5,3)
+    OGWorker2 = new Worker("Base",8,5)
+    OGWorker.DrawWorker(true)
+    OGWorker2.DrawWorker(true)
+    WorkerArray.push(OGWorker)
+    WorkerArray.push(OGWorker2)
+
+}
+
+function cellOnClickFunction(This){
+    if(MovingWorker != 0 && grid[This.id.split(",")[1]][This.id.split(",")[2]] == 1){
+                    
+        if(MovingCells != 0){
+            //document.getElementById(MovingCells).style.backgroundColor = "grey"
+        }
+        This.style.backgroundColor = "Red"
+        This.className = "Red"
+        MovingCells = This.id
+        //let grid = 
+            MoveArray = aStarSearch(grid,([parseInt(MovingWorker.split(",")[1]),parseInt(MovingWorker.split(",")[2])]),([parseInt(This.id.split(",")[1]),parseInt(This.id.split(",")[2])]))//parseInt(MovingWorker.split(",")[1]),parseInt(MovingWorker.split(",")[2]),parseInt(This.id.split(",")[1]),parseInt(This.id.split(",")[2]))
+        for(let worker = 0;worker<WorkerArray.length;worker++){
+            if(WorkerArray[worker].x == MovingWorker.split(",")[1] && WorkerArray[worker].y == MovingWorker.split(",")[2]){
+                WorkerArray[worker].MoveQueue = MoveArray
+            }
+        }
+        /*for(let a = 1;a<MoveArray.length-1;a++){
+        
+            document.getElementById("Cell,"+MoveArray[a][0]+","+MoveArray[a][1]).style.backgroundColor = "yellow"
+        }*/
+    }
+    if(BarracksFlag){
+        SpaceFlag = true
+        
+        x = parseInt(This.id.split(",")[1])
+        y = parseInt(This.id.split(",")[2])
+        for(let xi = -1;xi<=1;xi++){
+            for(let yi = -1;yi<=1;yi++){
+                if(grid[xi+x][yi+y] == 0){
+                    SpaceFlag = false
+                }
+                
+
+            }
+        }
+        if(SpaceFlag == true){
+            This.style.backgroundColor = "Brown"
+            for(let xi = -1;xi<=1;xi++){
+                for(let yi = -1;yi<=1;yi++){
+                    
+                    document.getElementById("Cell,"+(xi+x)+","+(yi+y)).style.backgroundColor = "Brown"
+                    grid[xi+x][yi+y] = 0
+                    for(let worker = 0;worker<WorkerArray.length;worker++){
+                        if(WorkerArray[worker].x == MovingWorker.split(",")[1] && WorkerArray[worker].y == MovingWorker.split(",")[2]){
+                            WorkerArray[worker].workQueue.push(["Barracks",[x,y],0])
+                        }
+                    }
+
+                }
+            }
+            MoveArray.shift()
+            MoveArray.shift()
+            BarracksFlag = false
+        }  
+    }
+
+    if(FarmFlag){
+        SpaceFlag = true
+        
+        x = parseInt(This.id.split(",")[1])
+        y = parseInt(This.id.split(",")[2])
+        for(let xi = -2;xi<=2;xi++){
+            for(let yi = -2;yi<=2;yi++){
+                if(grid[xi+x][yi+y] == 0){
+                    SpaceFlag = false
+                }
+                
+
+            }
+        }
+        if(SpaceFlag == true){
+            This.style.backgroundColor = "Brown"
+            for(let xi = -2;xi<=2;xi++){
+                for(let yi = -2;yi<=2;yi++){
+                    
+                    document.getElementById("Cell,"+(xi+x)+","+(yi+y)).style.backgroundColor = "Brown"
+                    grid[xi+x][yi+y] = 0
+                    
+                    for(let worker = 0;worker<WorkerArray.length;worker++){
+                        if(WorkerArray[worker].x == MovingWorker.split(",")[1] && WorkerArray[worker].y == MovingWorker.split(",")[2]){
+                            WorkerArray[worker].workQueue.push(["Farm",[x,y],0])
+                        }
+                    }
+
+                }
+            }
+            
+            MoveArray.shift()
+            MoveArray.shift()
+            MoveArray.shift()
+            FarmFlag = false
+            This.style.backgroundColor = "Brown"
+        }  
+        
+    }
+    //workSchedule[i][0].style.backgroundColor = "rgb(140, 40, 10)" Barracks
+    //workSchedule[i][0].style.backgroundColor = "rgb(83, 44, 0)" Farm
+    if(document.getElementById(This.id).style.backgroundColor == "rgb(140, 40, 10)" && document.getElementById(This.id).innerHTML == "/"){
+        console.log("barracks")
+        console.log(This.className)
+        
+        //Open menu of barracks to start making units
+        Toolbar = document.getElementById("Toolbar")
+        while(Toolbar.childElementCount > 0){
+            Toolbar.removeChild(Toolbar.lastElementChild)
+        }
+        MeleeUnitButton = document.createElement("button")
+        MeleeUnitButton.style.width = "100px"
+        MeleeUnitButton.style.height = "100px"
+        MeleeUnitButton.style.backgroundColor = "Grey"
+        MeleeUnitButton.innerHTML = "Melee Unit"
+        MeleeUnitButton.onclick = function ScheduleMeleeUnit(){
+            
+            /*try{
+                UnitSchedule = document.getElementById("UnitSchedule")
+                MeleeUnitScheduled = document.createElement("div")
+                MeleeUnitScheduled.style.width = "100px"
+                MeleeUnitScheduled.style.height = "100px"
+                MeleeUnitScheduled.style.backgroundColor = "Grey"
+                MeleeUnitScheduled.innerHTML = "Melee Unit"
+                ProgressBar = document.createElement("div")
+                ProgressBar.style.width = "0px"
+                ProgressBar.style.height = "10px"
+                ProgressBar.style.backgroundColor = "Green"
+                ProgressBar.className = "UnitProgressBar"
+                UnitSchedule.appendChild(ProgressBar)
+                UnitSchedule.appendChild(MeleeUnitScheduled)
+                
+                
+            }
+
+            catch{*/
+                //spawningArray.push(["Melee",0])
+                /*if(document.getElementById("UnitSchedule")){
+                    UnitSchedule = document.getElementById("UnitSchedule")
+                }
+                else{*/
+                if(document.getElementById("UnitSchedule")){
+                    while(document.getElementById("UnitSchedule").childElementCount > 0){
+                        document.getElementById("UnitSchedule").removeChild(document.getElementById("UnitSchedule").lastElementChild)
+                    }
+                    document.getElementById("UnitSchedule").remove()
+                    
+                }
+                UnitSchedule = document.createElement("div")
+                //}
+                
+                UnitSchedule.id = "UnitSchedule"
+
+                UnitSchedule.style.width = "auto"
+                UnitSchedule.style.maxheight = "70px"
+                UnitSchedule.style.top = "-70px"
+                UnitSchedule.style.position = "absolute"
+                UnitSchedule.style.display = "flex"
+                Toolbar.appendChild(UnitSchedule)
+                for(let unit = 0;unit<spawningArray.length;unit++){
+                    MeleeUnitScheduled = document.createElement("button")
+                    MeleeUnitScheduled.style.width = "50px"
+                    MeleeUnitScheduled.style.height = "50px"
+                    MeleeUnitScheduled.style.backgroundColor = "purple"
+                    MeleeUnitScheduled.className = "MeleeUnitScheduled"
+                    MeleeUnitScheduled.innerHTML = spawningArray[unit][0]+" Unit"
+                    ProgressBar = document.createElement("div")
+                    ProgressBar.style.width = "0px"
+                    ProgressBar.style.height = "10px"
+                    ProgressBar.style.backgroundColor = "Green"
+                    ProgressBar.className = "UnitProgressBar"
+                    //MeleeUnitScheduled.style.float = "left"
+                    UnitSchedule.appendChild(ProgressBar) 
+                    UnitSchedule.appendChild(MeleeUnitScheduled)
+                }
+                spawningArray.push(["Melee",0])
+                MeleeUnitScheduled = document.createElement("button")
+                MeleeUnitScheduled.style.width = "50px"
+                MeleeUnitScheduled.style.height = "50px"
+                MeleeUnitScheduled.style.backgroundColor = "purple"
+                //MeleeUnitScheduled.style.opacity = "20%"
+                MeleeUnitScheduled.innerHTML = "Melee Unit"
+                MeleeUnitScheduled.className = "MeleeUnitScheduled"
+                ProgressBar = document.createElement("div")
+                ProgressBar.style.width = "0px"
+                ProgressBar.style.height = "10px"
+                ProgressBar.style.backgroundColor = "Green"
+                ProgressBar.style.position = "relative"
+                ProgressBar.className = "UnitProgressBar"
+                //MeleeUnitScheduled.style.float = "left"
+                UnitSchedule.appendChild(ProgressBar)
+                UnitSchedule.appendChild(MeleeUnitScheduled)
+            //}
+
+        }
+        Toolbar.appendChild(MeleeUnitButton)
+
+        //populate with buttons for units
+        //maybe make it based on 'intelligence' so research can be a thing later
+        //give a spot for the units to move to after spawning
+        //make a 'spawningArray' or some shit to be gone through each frame, they spawn the first thing, then shift it
+        //make a new class which is a battle class that encapsulates all of the possible units used in battle
+
+        //then youre gonna have to make combat a thing, yikes buddy
+        //check if a unit is near a structure for it to auto start destroying it
+        //and if a unit from player a is next to a unit from player b they automatically deal damage to each other
+        //this may seem like a really shitty workaround but i think itll work in this context ngl
+
+
+    }
+    if(document.getElementById(This.id).style.backgroundColor == "rgb(83, 44, 0)" && document.getElementById(This.id).innerHTML == "/"){
+        console.log("farm")
+        
+    }
+}
+spawningArray = []
+
+
+
+
+
+range = 6400;
+    scrollVar = 10;
+
+    function zoom(event) {
+    event.preventDefault();
+
+    scale += event.deltaY * -0.001;
+
+    // Restrict scale
+    scale = Math.min(Math.max(.025, scale), 2);
+
+    // Apply scale transform
+    el.style.transform = `scale(${scale})`;
+    
+    }
+    let cursor = 'default';
+    dragElement(document.getElementById("CellContainer"));
+
+    function dragElement(elmnt) {
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    if (document.getElementById(elmnt.id + "header")) {
+        // if present, the header is where you move the DIV from:
+        document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+    } else {
+        // otherwise, move the DIV from anywhere inside the DIV:
+        elmnt.onmousedown = dragMouseDown;
+        elmnt.addEventListener("touchstart", dragMouseDown);
+    }
+
+    function dragMouseDown(e) {
+        
+        if(e.which == 2){
+            e = e || window.event;
+            
+        e.preventDefault();
+        // get the mouse cursor position at startup:
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        // call a function whenever the cursor moves:
+        document.onmousemove = elementDrag;
+        documentel.addEventListener("touchmove", elementDrag);
+        }
+        
+    }
+
+    function elementDrag(e) {
+        //cursor = document.getElementById("container").style.cursor;
+        document.getElementById("CellContainer").style.cursor = "grabbing";
+        
+        e = e || window.event;
+        e.preventDefault();
+        // calculate the new cursor position:
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        // set the element's new position:
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+    }
+
+    function closeDragElement() {
+        // stop moving when mouse button is released:
+        document.onmouseup = null;
+        document.onmousemove = null;
+        document.getElementById("CellContainer").style.cursor = cursor;
+    }
+}
+    let scale = 1;
+    el = document.getElementById('CellContainer');
+    el.onwheel = zoom;
+
+
+
+
+    
+Setup()
+
+
+p = 0
+const interval = setInterval(function() {
+    //Update UnitProgressBar classname for each progress made
+    //doc.getclass(UnitProgressBar) -> for i in range -> style.width = progress*10+"px"
+    //try{
+        if(spawningArray.length > 0){
+            spawningArray[0][1] += 1
+        }
+        
+        
+        
+        Bars = document.getElementsByClassName("UnitProgressBar")
+        MeleeUnitScheduled = document.getElementsByClassName("MeleeUnitScheduled")
+        //console.log(Bars)
+        //for(let Bar = 0;Bar<Bars.length;Bar++){
+            //console.log()
+            if(Bars.length > 0){
+                Bars[0].style.width = spawningArray[0][1]*10+"px"
+            }
+            
+        //}
+        if(spawningArray.length > 0){
+            
+            if(spawningArray[0][1] >= 5){
+                UnitSchedule = document.getElementById("UnitSchedule")
+                
+                Bars[0].remove()
+                MeleeUnitScheduled[0].remove()
+                spawningArray.shift()
+            }
+        }
+        
+    //}catch{
+
+    //}
+
+
+    //This is the game ticks
+    workSchedule = []
+    ProgressSchedule = []
+    for(let i = 0;i<WorkerArray.length;i++){
+        WorkerArray[i].Move()
+    }
+    //Add building step by step while a worker stands nearby
+    for(let i = 0;i<WorkerArray.length;i++){
+        for(let j = 0;j<WorkerArray[i].workQueue.length;j++){
+            
+            if(WorkerArray[i].workQueue[j][0] == "Farm"){
+                Progress = 0//WorkerArray[i].workQueue[j][2]
+                if(ProgressSchedule.length > 0){
+                    ProgressNew = ProgressSchedule[ProgressSchedule.length-1]
+                }
+                else{
+                    ProgressNew = 0
+                }
+                
+                //console.log(WorkerArray[i].x >= WorkerArray[i].workQueue[j][1][0]-3)
+                //console.log(WorkerArray[i].x <= WorkerArray[i].workQueue[j][1][0]+3)
+                if(WorkerArray[i].x >= WorkerArray[i].workQueue[j][1][0]-3 && WorkerArray[i].x <= WorkerArray[i].workQueue[j][1][0]+3){
+                    //console.log("X")
+                    if(WorkerArray[i].y >= WorkerArray[i].workQueue[j][1][1]-3 && WorkerArray[i].y <= WorkerArray[i].workQueue[j][1][1]+3){
+                        //console.log("Y")
+                        //console.log(WorkerArray[i].workQueue[j])
+                        Progress++;
+                        //console.log(Progress)
+                        for(let xi = -2;xi<=2;xi++){
+                            for(let yi = -2;yi<=2;yi++){
+                                
+                                if(Progress == 0){
+                                    //console.log("f")
+                                    break;
+                                }
+                                //console.log(document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])).style.backgroundColor)
+                                else if(document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])).style.backgroundColor == "brown"){
+                                    Progress--;
+                                    
+
+                                    //console.log("Progress")
+                                    if(!workSchedule.includes(document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])))){
+                                        ProgressNew++
+                                        WorkerArray[i].workQueue[j][2]+=1;
+                                        workSchedule.push([document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])),"Farm",WorkerArray[i].workQueue[j][2],[WorkerArray[i].workQueue[j][1][0],WorkerArray[i].workQueue[j][1][1]]])
+                                        
+                                        ProgressSchedule.push(ProgressNew)
+                                        //console.log(ProgressSchedule)
+                                    }
+                                    //document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])).style.backgroundColor = "black"
+                                }
+                                
+                                
+
+                            }
+                        }
+
+                    }
+                }
+            }
+            if(WorkerArray[i].workQueue[j][0] == "Barracks"){
+                Progress = 0//WorkerArray[i].workQueue[j][2]
+                if(ProgressSchedule.length > 0){
+                    ProgressNew = ProgressSchedule[ProgressSchedule.length-1]
+                }
+                else{
+                    ProgressNew = 0
+                }
+                //console.log(WorkerArray[i].x >= WorkerArray[i].workQueue[j][1][0]-3)
+                //console.log(WorkerArray[i].x <= WorkerArray[i].workQueue[j][1][0]+3)
+                if(WorkerArray[i].x >= WorkerArray[i].workQueue[j][1][0]-2 && WorkerArray[i].x <= WorkerArray[i].workQueue[j][1][0]+2){
+                    //console.log("X")
+                    if(WorkerArray[i].y >= WorkerArray[i].workQueue[j][1][1]-2 && WorkerArray[i].y <= WorkerArray[i].workQueue[j][1][1]+2){
+                        //console.log("Y")
+                        //console.log(WorkerArray[i].workQueue[j])
+                        Progress++;
+                        //console.log(Progress)
+                        for(let xi = -1;xi<=1;xi++){
+                            for(let yi = -1;yi<=1;yi++){
+                                
+                                if(Progress == 0){
+                                    //console.log("f")
+                                    break;
+                                }
+                                //console.log(document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])).style.backgroundColor)
+                                else if(document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])).style.backgroundColor == "brown"){
+                                    Progress--;
+                                    ProgressNew++
+                                    if(!workSchedule.includes(document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])))){
+                                        //console.log(WorkerArray[i].workQueue[j][2])
+                                        WorkerArray[i].workQueue[j][2]+=1;
+                                        //console.log(WorkerArray[i].workQueue[j][2])
+                                        workSchedule.push([document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])),"Barracks",WorkerArray[i].workQueue[j][2],[WorkerArray[i].workQueue[j][1][0],WorkerArray[i].workQueue[j][1][1]]])
+                                    }
+                                    ProgressSchedule.push(ProgressNew)
+                                    //document.getElementById("Cell,"+(xi+WorkerArray[i].workQueue[j][1][0])+","+(yi+WorkerArray[i].workQueue[j][1][1])).style.backgroundColor = "black"
+                                }
+                                
+                                
+
+                            }
+                        }
+
+                    }
+                }
+            }
+            //Work will be sectioned as such:
+            //[JobName,[coordsX,coordsY],JobCompletion]
+            //JobName so we can discern between buildings
+            //Coords to know where to stand for the job to be worked on
+            //JobCompletion to track how many ticks left to complete the job
+        }
+        
+    }
+    //ProgressNew = 0
+    
+    for(let i = 0;i<workSchedule.length;i++){
+        
+        
+        if(workSchedule[i][1] == "Farm"){
+            
+            //console.log(ProgressSchedule,i)
+            if(workSchedule[i][0].style.backgroundColor != "rgb(83, 44, 0)"){
+                //maybe call the job tile in the middle and store the progress in it
+                //console.log(workSchedule[i][2])
+                
+                workSchedule[i][0].style.backgroundColor = "rgb(83, 44, 0)"
+                
+                
+            }
+            //workSchedule.shift()
+            if(workSchedule[i][2]==24){
+                document.getElementById("Cell,"+workSchedule[i][3][0]+","+workSchedule[i][3][1]).style.backgroundColor = "green"
+                
+                for(let xi = -2;xi<=2;xi++){
+                    for(let yi = -2;yi<=2;yi++){
+                        document.getElementById("Cell,"+(workSchedule[i][3][0]+xi)+","+(workSchedule[i][3][1]+yi)).innerHTML = "/"
+                    }
+                }
+            }
+        }
+        if(workSchedule[i][1] == "Barracks"){
+            if(workSchedule[i][0].style.backgroundColor != "rgb(140, 40, 10)"){
+                //p++
+                
+                
+                workSchedule[i][0].style.backgroundColor = "rgb(140, 40, 10)"
+                //workSchedule[i][0].innerHTML = p
+            }
+            if(workSchedule[i][2]==8){
+                document.getElementById("Cell,"+workSchedule[i][3][0]+","+workSchedule[i][3][1]).style.backgroundColor = "green"
+                for(let xi = -1;xi<=1;xi++){
+                    for(let yi = -1;yi<=1;yi++){
+                        document.getElementById("Cell,"+(workSchedule[i][3][0]+xi)+","+(workSchedule[i][3][1]+yi)).innerHTML = "/"
+                    }
+                }
+                
+            }
+            
+        }
+        
+    }
+    
+    }, 100);
+
+
+
+
+
+    //workSchedule[i][0].style.backgroundColor = "rgb(140, 40, 10)" Barracks
+    //workSchedule[i][0].style.backgroundColor = "rgb(83, 44, 0)" Farm
+
+// A javascript Program to implement A* Search Algorithm
+
+let ROW = 100;
+let COL = 100;
+
+// typedef pair<double, pair<int, int> > pPair;
+
+// A structure to hold the necessary parameters
+class cell {
+    // Row and Column index of its parent
+    // Note that 0 <= i <= ROW-1 & 0 <= j <= COL-1
+    constructor(){
+        this.parent_i = 0;
+        this.parent_j = 0;
+        this.f = 0;
+        this.g = 0;
+        this.h = 0;
+    }
+}
+
+// A Utility Function to check whether given cell (row, col)
+// is a valid cell or not.
+function isValid(row, col)
+{
+    // Returns true if row number and column number
+    // is in range
+    return (row >= 0) && (row < ROW) && (col >= 0) && (col < COL);
+}
+
+// A Utility Function to check whether the given cell is
+// blocked or not
+function isUnBlocked(grid, row, col)
+{
+    // Returns true if the cell is not blocked else false
+    if (grid[row][col] == 1)
+        return (true);
+    else
+        return (false);
+}
+
+// A Utility Function to check whether destination cell has
+// been reached or not
+function isDestination(row, col, dest)
+{
+    if (row == dest[0] && col == dest[1])
+        return (true);
+    else
+        return (false);
+}
+
+// A Utility Function to calculate the 'h' heuristics.
+function calculateHValue(row, col, dest)
+{
+    // Return using the distance formula
+    return (Math.sqrt((row - dest[0]) * (row - dest[0]) + (col - dest[1]) * (col - dest[1])));
+}
+
+// A Utility Function to trace the path from the source
+// to destination
+function tracePath(cellDetails, dest)
+{
+    console.log("The Path is ");
+    let row = dest[0];
+    let col = dest[1];
+
+    // stack<Pair> Path;
+    let Path = [];
+
+    while (!(cellDetails[row][col].parent_i == row && cellDetails[row][col].parent_j == col)) {
+        Path.push([row, col]);
+        let temp_row = cellDetails[row][col].parent_i;
+        let temp_col = cellDetails[row][col].parent_j;
+        row = temp_row;
+        col = temp_col;
+    }
+
+    Path.push([row, col]);
+    //console.log(Path[0])
+    
+    tempPath = []
+    while (Path.length > 0) {
+        let p = Path[0];
+        Path.shift();
+        
+        if(p[0] == 2 || p[0] == 1){
+            console.log("-> (" + p[0] + ", " + (p[1] - 1) + ")");
+            tempPath.push([p[0],(p[1] - 1)])
+        }
+        else {console.log("-> (" + p[0] + ", " + p[1] + ")");tempPath.push([p[0],(p[1])]);}
+    }
+    console.log(tempPath)
+    return tempPath;
+}
+
+// A Function to find the shortest path between
+// a given source cell to a destination cell according
+// to A* Search Algorithm
+function aStarSearch(grid, src, dest)
+{
+    // If the source is out of range
+    if (isValid(src[0], src[1]) == false) {
+        console.log("Source is invalid\n");
+        return;
+    }
+
+    // If the destination is out of range
+    if (isValid(dest[0], dest[1]) == false) {
+        console.log("Destination is invalid\n");
+        return;
+    }
+
+    // Either the source or the destination is blocked
+    /*if (isUnBlocked(grid, src[0], src[1]) == false
+        || isUnBlocked(grid, dest[0], dest[1])
+               == false) {
+        console.log("Source or the destination is blocked\n");
+        return;
+    }*/
+
+    // If the destination cell is the same as source cell
+    if (isDestination(src[0], src[1], dest)
+        == true) {
+        console.log("We are already at the destination\n");
+        return;
+    }
+
+    // Create a closed list and initialise it to false which
+    // means that no cell has been included yet This closed
+    // list is implemented as a boolean 2D array
+    let closedList = new Array(ROW);
+    for(let i = 0; i < ROW; i++){
+        closedList[i] = new Array(COL).fill(false);
+    }
+
+    // Declare a 2D array of structure to hold the details
+    // of that cell
+    let cellDetails = new Array(ROW);
+    for(let i = 0; i < ROW; i++){
+        cellDetails[i] = new Array(COL);
+    }
+
+    let i, j;
+
+    for (i = 0; i < ROW; i++) {
+        for (j = 0; j < COL; j++) {
+            cellDetails[i][j] = new cell();
+            cellDetails[i][j].f = 2147483647;
+            cellDetails[i][j].g = 2147483647;
+            cellDetails[i][j].h = 2147483647;
+            cellDetails[i][j].parent_i = -1;
+            cellDetails[i][j].parent_j = -1;
+        }
+    }
+
+    // Initialising the parameters of the starting node
+    i = src[0], j = src[1];
+    cellDetails[i][j].f = 0;
+    cellDetails[i][j].g = 0;
+    cellDetails[i][j].h = 0;
+    cellDetails[i][j].parent_i = i;
+    cellDetails[i][j].parent_j = j;
+
+    /*
+     Create an open list having information as-
+     <f, <i, j>>
+     where f = g + h,
+     and i, j are the row and column index of that cell
+     Note that 0 <= i <= ROW-1 & 0 <= j <= COL-1
+     This open list is implemented as a set of pair of
+     pair.*/
+    let openList = new Map();
+
+    // Put the starting cell on the open list and set its
+    // 'f' as 0
+    openList.set(0, [i, j]);
+
+    // We set this boolean value as false as initially
+    // the destination is not reached.
+    let foundDest = false;
+
+    while (openList.size > 0) {
+        let p = openList.entries().next().value
+
+        // Remove this vertex from the open list
+        openList.delete(p[0]);
+
+        // Add this vertex to the closed list
+        i = p[1][0];
+        j = p[1][1];
+        closedList[i][j] = true;
+
+        
+
+        // To store the 'g', 'h' and 'f' of the 8 successors
+        let gNew, hNew, fNew;
+
+        //----------- 1st Successor (North) ------------
+
+        // Only process this cell if this is a valid one
+        if (isValid(i - 1, j) == true) {
+            // If the destination cell is the same as the
+            // current successor
+            if (isDestination(i - 1, j, dest) == true) {
+                // Set the Parent of the destination cell
+                cellDetails[i - 1][j].parent_i = i;
+                cellDetails[i - 1][j].parent_j = j;
+                console.log("The destination cell is found\n");
+                Path = tracePath(cellDetails, dest);
+                foundDest = true;
+                return Path;
+            }
+            // If the successor is already on the closed
+            // list or if it is blocked, then ignore it.
+            // Else do the following
+            else if (closedList[i - 1][j] == false
+                     && isUnBlocked(grid, i - 1, j)
+                            == true) {
+                gNew = cellDetails[i][j].g + 1;
+                hNew = calculateHValue(i - 1, j, dest);
+                fNew = gNew + hNew;
+
+                // If it isn’t on the open list, add it to
+                // the open list. Make the current square
+                // the parent of this square. Record the
+                // f, g, and h costs of the square cell
+                //                OR
+                // If it is on the open list already, check
+                // to see if this path to that square is
+                // better, using 'f' cost as the measure.
+                if (cellDetails[i - 1][j].f == 2147483647
+                    || cellDetails[i - 1][j].f > fNew) {
+                    openList.set(fNew, [i - 1, j]);
+
+                    // Update the details of this cell
+                    cellDetails[i - 1][j].f = fNew;
+                    cellDetails[i - 1][j].g = gNew;
+                    cellDetails[i - 1][j].h = hNew;
+                    cellDetails[i - 1][j].parent_i = i;
+                    cellDetails[i - 1][j].parent_j = j;
+                }
+            }
+        }
+
+        //----------- 2nd Successor (South) ------------
+
+        // Only process this cell if this is a valid one
+        if (isValid(i + 1, j) == true) {
+            // If the destination cell is the same as the
+            // current successor
+            if (isDestination(i + 1, j, dest) == true) {
+                // Set the Parent of the destination cell
+                cellDetails[i + 1][j].parent_i = i;
+                cellDetails[i + 1][j].parent_j = j;
+                console.log("The destination cell is found\n");
+                Path = tracePath(cellDetails, dest);
+                foundDest = true;
+                return Path;
+            }
+            // If the successor is already on the closed
+            // list or if it is blocked, then ignore it.
+            // Else do the following
+            else if (closedList[i + 1][j] == false
+                     && isUnBlocked(grid, i + 1, j)
+                            == true) {
+                gNew = cellDetails[i][j].g + 1;
+                hNew = calculateHValue(i + 1, j, dest);
+                fNew = gNew + hNew;
+
+                // If it isn’t on the open list, add it to
+                // the open list. Make the current square
+                // the parent of this square. Record the
+                // f, g, and h costs of the square cell
+                //                OR
+                // If it is on the open list already, check
+                // to see if this path to that square is
+                // better, using 'f' cost as the measure.
+                if (cellDetails[i + 1][j].f == 2147483647
+                    || cellDetails[i + 1][j].f > fNew) {
+                    openList.set(fNew, [i + 1, j]);
+                    // Update the details of this cell
+                    cellDetails[i + 1][j].f = fNew;
+                    cellDetails[i + 1][j].g = gNew;
+                    cellDetails[i + 1][j].h = hNew;
+                    cellDetails[i + 1][j].parent_i = i;
+                    cellDetails[i + 1][j].parent_j = j;
+                }
+            }
+        }
+
+        //----------- 3rd Successor (East) ------------
+
+        // Only process this cell if this is a valid one
+        if (isValid(i, j + 1) == true) {
+            // If the destination cell is the same as the
+            // current successor
+            if (isDestination(i, j + 1, dest) == true) {
+                // Set the Parent of the destination cell
+                cellDetails[i][j + 1].parent_i = i;
+                cellDetails[i][j + 1].parent_j = j;
+                console.log("The destination cell is found\n");
+                Path = tracePath(cellDetails, dest);
+                foundDest = true;
+                return Path;
+            }
+
+            // If the successor is already on the closed
+            // list or if it is blocked, then ignore it.
+            // Else do the following
+            else if (closedList[i][j + 1] == false
+                     && isUnBlocked(grid, i, j + 1)
+                            == true) {
+                gNew = cellDetails[i][j].g + 1;
+                hNew = calculateHValue(i, j + 1, dest);
+                fNew = gNew + hNew;
+
+                // If it isn’t on the open list, add it to
+                // the open list. Make the current square
+                // the parent of this square. Record the
+                // f, g, and h costs of the square cell
+                //                OR
+                // If it is on the open list already, check
+                // to see if this path to that square is
+                // better, using 'f' cost as the measure.
+                if (cellDetails[i][j + 1].f == 2147483647
+                    || cellDetails[i][j + 1].f > fNew) {
+                    openList.set(fNew, [i, j + 1]);
+
+                    // Update the details of this cell
+                    cellDetails[i][j + 1].f = fNew;
+                    cellDetails[i][j + 1].g = gNew;
+                    cellDetails[i][j + 1].h = hNew;
+                    cellDetails[i][j + 1].parent_i = i;
+                    cellDetails[i][j + 1].parent_j = j;
+                }
+            }
+        }
+
+        //----------- 4th Successor (West) ------------
+
+        // Only process this cell if this is a valid one
+        if (isValid(i, j - 1) == true) {
+            // If the destination cell is the same as the
+            // current successor
+            if (isDestination(i, j - 1, dest) == true) {
+                // Set the Parent of the destination cell
+                cellDetails[i][j - 1].parent_i = i;
+                cellDetails[i][j - 1].parent_j = j;
+                console.log("The destination cell is found\n");
+                Path = tracePath(cellDetails, dest);
+                foundDest = true;
+                return Path;
+            }
+
+            // If the successor is already on the closed
+            // list or if it is blocked, then ignore it.
+            // Else do the following
+            else if (closedList[i][j - 1] == false
+                     && isUnBlocked(grid, i, j - 1)
+                            == true) {
+                gNew = cellDetails[i][j].g + 1;
+                hNew = calculateHValue(i, j - 1, dest);
+                fNew = gNew + hNew;
+
+                // If it isn’t on the open list, add it to
+                // the open list. Make the current square
+                // the parent of this square. Record the
+                // f, g, and h costs of the square cell
+                //                OR
+                // If it is on the open list already, check
+                // to see if this path to that square is
+                // better, using 'f' cost as the measure.
+                if (cellDetails[i][j - 1].f == 2147483647
+                    || cellDetails[i][j - 1].f > fNew) {
+                    openList.set(fNew, [i, j - 1]);
+
+                    // Update the details of this cell
+                    cellDetails[i][j - 1].f = fNew;
+                    cellDetails[i][j - 1].g = gNew;
+                    cellDetails[i][j - 1].h = hNew;
+                    cellDetails[i][j - 1].parent_i = i;
+                    cellDetails[i][j - 1].parent_j = j;
+                }
+            }
+        }
+
+        //----------- 5th Successor (North-East)
+        //------------
+
+        // Only process this cell if this is a valid one
+        if (isValid(i - 1, j + 1) == true) {
+            // If the destination cell is the same as the
+            // current successor
+            if (isDestination(i - 1, j + 1, dest) == true) {
+                // Set the Parent of the destination cell
+                cellDetails[i - 1][j + 1].parent_i = i;
+                cellDetails[i - 1][j + 1].parent_j = j;
+                console.log("The destination cell is found\n");
+                Path = tracePath(cellDetails, dest);
+                foundDest = true;
+                return Path;
+            }
+
+            // If the successor is already on the closed
+            // list or if it is blocked, then ignore it.
+            // Else do the following
+            else if (closedList[i - 1][j + 1] == false
+                     && isUnBlocked(grid, i - 1, j + 1)
+                            == true) {
+                gNew = cellDetails[i][j].g + 1.414;
+                hNew = calculateHValue(i - 1, j + 1, dest);
+                fNew = gNew + hNew;
+
+                // If it isn’t on the open list, add it to
+                // the open list. Make the current square
+                // the parent of this square. Record the
+                // f, g, and h costs of the square cell
+                //                OR
+                // If it is on the open list already, check
+                // to see if this path to that square is
+                // better, using 'f' cost as the measure.
+                if (cellDetails[i - 1][j + 1].f == 2147483647
+                    || cellDetails[i - 1][j + 1].f > fNew) {
+                    openList.set(fNew, [i - 1, j + 1]);
+
+                    // Update the details of this cell
+                    cellDetails[i - 1][j + 1].f = fNew;
+                    cellDetails[i - 1][j + 1].g = gNew;
+                    cellDetails[i - 1][j + 1].h = hNew;
+                    cellDetails[i - 1][j + 1].parent_i = i;
+                    cellDetails[i - 1][j + 1].parent_j = j;
+                }
+            }
+        }
+
+        //----------- 6th Successor (North-West)
+        //------------
+
+        // Only process this cell if this is a valid one
+        if (isValid(i - 1, j - 1) == true) {
+            // If the destination cell is the same as the
+            // current successor
+            if (isDestination(i - 1, j - 1, dest) == true) {
+                // Set the Parent of the destination cell
+                cellDetails[i - 1][j - 1].parent_i = i;
+                cellDetails[i - 1][j - 1].parent_j = j;
+                console.log("The destination cell is found\n");
+                Path = tracePath(cellDetails, dest);
+                foundDest = true;
+                return Path;
+            }
+
+            // If the successor is already on the closed
+            // list or if it is blocked, then ignore it.
+            // Else do the following
+            else if (closedList[i - 1][j - 1] == false
+                     && isUnBlocked(grid, i - 1, j - 1)
+                            == true) {
+                gNew = cellDetails[i][j].g + 1.414;
+                hNew = calculateHValue(i - 1, j - 1, dest);
+                fNew = gNew + hNew;
+
+                // If it isn’t on the open list, add it to
+                // the open list. Make the current square
+                // the parent of this square. Record the
+                // f, g, and h costs of the square cell
+                //                OR
+                // If it is on the open list already, check
+                // to see if this path to that square is
+                // better, using 'f' cost as the measure.
+                if (cellDetails[i - 1][j - 1].f == 2147483647
+                    || cellDetails[i - 1][j - 1].f > fNew) {
+                    openList.set(fNew, [i - 1, j - 1]);
+                    // Update the details of this cell
+                    cellDetails[i - 1][j - 1].f = fNew;
+                    cellDetails[i - 1][j - 1].g = gNew;
+                    cellDetails[i - 1][j - 1].h = hNew;
+                    cellDetails[i - 1][j - 1].parent_i = i;
+                    cellDetails[i - 1][j - 1].parent_j = j;
+                }
+            }
+        }
+
+        //----------- 7th Successor (South-East)
+        //------------
+
+        // Only process this cell if this is a valid one
+        if (isValid(i + 1, j + 1) == true) {
+            // If the destination cell is the same as the
+            // current successor
+            if (isDestination(i + 1, j + 1, dest) == true) {
+                // Set the Parent of the destination cell
+                cellDetails[i + 1][j + 1].parent_i = i;
+                cellDetails[i + 1][j + 1].parent_j = j;
+                console.log("The destination cell is found\n");
+                Path = tracePath(cellDetails, dest);
+                foundDest = true;
+                return Path;
+            }
+
+            // If the successor is already on the closed
+            // list or if it is blocked, then ignore it.
+            // Else do the following
+            else if (closedList[i + 1][j + 1] == false
+                     && isUnBlocked(grid, i + 1, j + 1)
+                            == true) {
+                gNew = cellDetails[i][j].g + 1.414;
+                hNew = calculateHValue(i + 1, j + 1, dest);
+                fNew = gNew + hNew;
+
+                // If it isn’t on the open list, add it to
+                // the open list. Make the current square
+                // the parent of this square. Record the
+                // f, g, and h costs of the square cell
+                //                OR
+                // If it is on the open list already, check
+                // to see if this path to that square is
+                // better, using 'f' cost as the measure.
+                if (cellDetails[i + 1][j + 1].f == 2147483647
+                    || cellDetails[i + 1][j + 1].f > fNew) {
+                    openList.set(fNew, [i + 1, j + 1]);
+
+                    // Update the details of this cell
+                    cellDetails[i + 1][j + 1].f = fNew;
+                    cellDetails[i + 1][j + 1].g = gNew;
+                    cellDetails[i + 1][j + 1].h = hNew;
+                    cellDetails[i + 1][j + 1].parent_i = i;
+                    cellDetails[i + 1][j + 1].parent_j = j;
+                }
+            }
+        }
+
+        //----------- 8th Successor (South-West)
+        //------------
+
+        // Only process this cell if this is a valid one
+        if (isValid(i + 1, j - 1) == true) {
+            // If the destination cell is the same as the
+            // current successor
+            if (isDestination(i + 1, j - 1, dest) == true) {
+                // Set the Parent of the destination cell
+                cellDetails[i + 1][j - 1].parent_i = i;
+                cellDetails[i + 1][j - 1].parent_j = j;
+                console.log("The destination cell is found\n");
+                Path = tracePath(cellDetails, dest);
+                foundDest = true;
+                return Path;
+            }
+
+            // If the successor is already on the closed
+            // list or if it is blocked, then ignore it.
+            // Else do the following
+            else if (closedList[i + 1][j - 1] == false
+                     && isUnBlocked(grid, i + 1, j - 1)
+                            == true) {
+                gNew = cellDetails[i][j].g + 1.414;
+                hNew = calculateHValue(i + 1, j - 1, dest);
+                fNew = gNew + hNew;
+
+                // If it isn’t on the open list, add it to
+                // the open list. Make the current square
+                // the parent of this square. Record the
+                // f, g, and h costs of the square cell
+                //                OR
+                // If it is on the open list already, check
+                // to see if this path to that square is
+                // better, using 'f' cost as the measure.
+                FLT_MAX = 1000000000
+                if (cellDetails[i + 1][j - 1].f == FLT_MAX
+                    || cellDetails[i + 1][j - 1].f > fNew) {
+                    openList.set(fNew, [i + 1, j - 1]);
+
+                    // Update the details of this cell
+                    cellDetails[i + 1][j - 1].f = fNew;
+                    cellDetails[i + 1][j - 1].g = gNew;
+                    cellDetails[i + 1][j - 1].h = hNew;
+                    cellDetails[i + 1][j - 1].parent_i = i;
+                    cellDetails[i + 1][j - 1].parent_j = j;
+                }
+            }
+        }
+    }
+
+    // When the destination cell is not found and the open
+    // list is empty, then we conclude that we failed to
+    // reach the destination cell. This may happen when the
+    // there is no way to destination cell (due to
+    // blockages)
+    if (foundDest == false)
+        console.log("Failed to find the Destination Cell\n");
+
+    return Path;
+}
+
+
+
+
+
+
+//console.log(search());
+
+
+
+
+</script>
+</body>

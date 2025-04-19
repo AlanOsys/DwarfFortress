@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<head>
+<title>Turn Based Strategy</title>
+
+<style type="text/css">
+body{
+    background-color: rgb(148, 148, 148);
+}
+.Horse{
+    width: 50px;
+    height: 50px;
+    background-color: transparent;
+    position: absolute;
+    left: 50px;
+    top: 50px;
+}
+#Reward{
+    position: absolute;
+    left: 130px;
+    top: 300px;
+    width: 50px;
+    height: 50px;
+}
+
+</style>
+
+</head>
+
+<body>
+    <div style="width: 10px;height: 600px;background-color: black; position: absolute;left: 0;top: 0px;" id="TopBoundary"></div>
+    <div style="width: 810px;height: 10px;background-color: black; position: absolute;left: 0;top: 0px;" id="LeftBoundary"></div>
+    <div style="width: 810px;height: 10px;background-color: black; position: absolute;left: 0px;top: 600px;" id="BottomBoundary"></div>
+    <div style="width: 10px;height: 600px;background-color: black; position: absolute;left: 800px;top: 000px;" id="RightBoundary"></div>
+
+    <div style="width: 20px;height: 150px;background-color: black; position: absolute;left: 350px;top: 150px;"></div>
+    <div style="width: 20px;height: 300px;background-color: black; position: absolute;left: 650px;top: 150px;"></div>
+    <div style="width: 200px;height: 20px;background-color: black; position: absolute;left: 0px;top: 250px;"></div>
+
+    <div style="width: 20px;height: 250px;background-color: black; position: absolute;left: 200px;top: 250px;"></div>
+    <div style="width: 200px;height: 20px;background-color: black; position: absolute;left: 350px;top: 200px;"></div>
+    <div style="width: 110px;height: 20px;background-color: black; position: absolute;left: 100px;top: 400px;"></div>
+    <div style="width: 100px;height: 20px;background-color: black; position: absolute;left: 550px;top: 200px;"></div>
+
+    <div style="width: 150px;height: 20px;background-color: black; position: absolute;left: 360px;top: 400px;"></div>
+    <div style="width: 20px;height: 20px;background-color: black; position: absolute;left: 200px;top: 500px;"></div>
+
+    <div style="width: 20px;height: 100px;background-color: black; position: absolute;left: 400px;top: 400px;"></div>
+    <div style="width: 20px;height: 100px;background-color: black; position: absolute;left: 500px;top: 0px;"></div>
+    
+<script>
+BoioNames = ["Lizard","MagicDartFrog","BatUm","Cultist","CursedMummy","Druid","InsectBrothers","FrisbeeWoman"]
+RewardImages = ["Bone","gold","Halo","Hourglass","Lava_ruin","Melty","Seaweed","Seeds","PieceOfCosmos"]
+HorseArray = []
+BoundaryArray = []
+for(let i=0;i<document.body.childElementCount-1;i++){
+    BoundaryArray.push(document.body.children[i])
+}
+Reward = document.createElement("div")
+Reward.style.backgroundImage = "url(Images/Materials/"+RewardImages[Math.floor(Math.random()*RewardImages.length)]+".png)"
+Reward.id = "Reward"
+document.body.appendChild(Reward)
+console.log(BoundaryArray)
+function Initialisation(){
+    for(let i = 0;i<BoioNames.length;i++){
+        /**/Horse = document.createElement("div")
+        Horse.className = "Horse"
+        Horse.id = BoioNames[i]
+        Horse.value = ("-1,-1")
+        Horse.style.left = "200px"
+        Horse.style.top = "50px"
+        Horse.style.backgroundImage = "url(Images/Boios/"+BoioNames[i]+".png)"
+        Horse.innerHTML = BoioNames[i]
+        Horse.style.color = "white"
+        document.body.appendChild(Horse)
+        HorseArray.push(Horse)
+    }
+    
+
+    
+}
+
+Initialisation()
+const interval = setInterval(function() {
+    
+
+
+    for(let i = 0;i<HorseArray.length;i++){
+        
+        
+        //console.log(parseFloat(HorseArray[i].style.left)+(parseFloat(HorseArray[i].value.split(",")[0])*1.2))
+        rect1 = HorseArray[i].getBoundingClientRect()
+        for(let j = 0;j<BoundaryArray.length;j++){
+            rect2 = BoundaryArray[j].getBoundingClientRect()
+            var overlap = !(rect1.right < rect2.left || 
+                rect1.left > rect2.right || 
+                rect1.bottom < rect2.top || 
+                rect1.top > rect2.bottom)
+            if(overlap){
+                //console.log("OVERLAP")
+                if(rect1.right > rect2.left && rect1.bottom > rect2.top && rect1.top < rect2.bottom){
+                    HorseArray[i].value = String(((-2)))+","+String((Math.random()*1.8-0.9))
+                    //console.log("Right")
+                }
+                if(rect1.left < rect2.right&& rect1.bottom > rect2.top && rect1.top < rect2.bottom){
+                    //console.log("Left")
+                    HorseArray[i].value = String(2)+","+String((Math.random()*1.8-0.9))
+                    
+                }
+                if(rect1.bottom > rect2.top && rect1.right > rect2.left && rect1.left < rect2.right){
+                    HorseArray[i].value = String((Math.random()*1.8-0.9))+","+String(2)
+                    //console.log("Bottom")
+                }
+                if(rect1.top < rect2.bottom && rect1.left < rect2.right && rect1.right > rect2.left){
+                    HorseArray[i].value = String((Math.random()*1.8-0.9))+","+String(-2)
+                    //console.log("Top")
+                }
+            }
+        }
+        
+        rect2 = document.getElementById("Reward").getBoundingClientRect()
+        var overlap = !(rect1.right < rect2.left || 
+            rect1.left > rect2.right || 
+            rect1.bottom < rect2.top || 
+            rect1.top > rect2.bottom)
+        if(overlap){
+            //console.log("OVERLAP")
+            alert("Win: "+HorseArray[i].innerHTML)
+        }
+        
+            
+        
+        
+    }
+    for(let i = 0;i<HorseArray.length;i++){
+        LeftBoundary = document.getElementById("LeftBoundary")
+        RightBoundary = document.getElementById("RightBoundary")
+
+        TopBoundary = document.getElementById("TopBoundary")
+        BottomBoundary = document.getElementById("BottomBoundary")
+        if(parseFloat(HorseArray[i].style.left) < parseFloat(RightBoundary.style.left) && parseFloat(HorseArray[i].style.left) > parseFloat(LeftBoundary.style.left)){
+            HorseArray[i].style.left = ((parseFloat(HorseArray[i].style.left)+(parseFloat(HorseArray[i].value.split(",")[0]))))+"px"
+            
+        }
+        else if(parseFloat(HorseArray[i].style.left) >= parseFloat(RightBoundary.style.left)){
+            HorseArray[i].style.left = ((parseFloat(HorseArray[i].style.left)-20))+"px"
+            HorseArray[i].value = String(-2)+","+String((Math.random()*1.8-0.9))
+        }
+        else if(parseFloat(HorseArray[i].style.left) <= parseFloat(LeftBoundary.style.left)){
+            HorseArray[i].style.left = ((parseFloat(HorseArray[i].style.left)+20))+"px"
+            HorseArray[i].value = String(2)+","+String((Math.random()*1.8-0.9))
+        }
+
+        if(parseFloat(HorseArray[i].style.top) < parseFloat(BottomBoundary.style.top) && parseFloat(HorseArray[i].style.top) > parseFloat(TopBoundary.style.top)){
+            HorseArray[i].style.top = ((parseFloat(HorseArray[i].style.top)+(parseFloat(HorseArray[i].value.split(",")[1]))))+"px"
+            
+        }
+        else if(parseFloat(HorseArray[i].style.top) >= parseFloat(BottomBoundary.style.top)){
+            HorseArray[i].style.top = ((parseFloat(HorseArray[i].style.top)-20))+"px"
+            HorseArray[i].value = String((Math.random()*1.8-0.9))+","+String(-2)
+        }
+        else if(parseFloat(HorseArray[i].style.top) < parseFloat(TopBoundary.getBoundingClientRect().bottom)){
+            HorseArray[i].style.top = ((parseFloat(HorseArray[i].style.top)+20))+"px"
+            HorseArray[i].value = String((Math.random()*1.8-0.9))+","+String(2)
+            
+        }
+    }
+}, 10);
+</script>
+</body>

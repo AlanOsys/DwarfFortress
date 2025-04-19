@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<head>
+<title>Dwarf Fortress</title>
+
+<style type="text/css">
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+    outline: none;
+    -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+*{
+    overflow:hidden;
+}
+#container{
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+}
+#MineContainer{
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+}
+#container *{
+    position: absolute;
+    
+}
+#MineContainer *{
+    position: absolute;
+    
+}
+#LeftBar{
+    position: absolute;
+    left: 0%;
+    top: 50%;
+    height: auto;
+    width: 60px;
+    background-color: azure;
+    transform: translateY(-50%);
+    display: block;
+    z-index: 10;
+}
+.Materials{
+    float: left;
+    position: relative;
+    width: 50px;
+    height: 50px;
+    background-color: rgb(255, 255, 255);
+    margin-left: 5px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+#ResearchPopUp{
+    width: 400px;
+    height: 100%;
+    position: absolute;
+    right: 0%;
+    top: 0%;
+    background-color: rgb(0, 0, 143);
+    overflow: visible;
+}
+.CloseButton{
+    left: 0%;
+    top: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+    font: larger;
+    background-color: red;
+    position: inherit;
+}
+#AddResearchButton{
+    left: 0%;
+    top: 0%;
+    position: absolute;
+}
+#ResearchClasses{
+    top: 30%;
+    left: 10%;
+    position: relative;
+}
+.ResearchClassesClass{
+    white-space: nowrap;
+    position: relative;
+    overflow-x: scroll;
+    overflow-y: visible;
+    width: 300px;
+    height: 90px;
+    margin-left: 30px;
+    -webkit-overflow-scrolling: touch;  
+    margin-bottom: 40px;
+    
+} 
+.ResearchBox{
+    
+    float: none;
+    display: inline-block;
+    position: relative;
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+    background-color: rgb(168, 168, 168);
+    max-width: 50px;
+}
+.ResearchName{
+   
+    
+    position: relative;
+    color: aliceblue;
+
+}
+.Entity{
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    background-color: aliceblue;
+    overflow: visible;
+}
+#BottomBar{
+    width: auto;
+    height: 80px;
+    position: absolute;
+    left: 0%;
+    bottom: 0%;
+    background-color: black;
+}
+.BottomClass{
+    width: 70px;
+    height: 70px;
+    margin-top: 5px;
+    margin-left: 2.5px;
+    margin-right: 2.5px;
+    background-color: rgb(71, 71, 71);
+}
+#TopBar{
+    width: auto;
+    height: 80px;
+    background-color: black;
+    left: 50%;
+    top: 0%;
+    position: absolute;
+    transform: translateX(-50%);
+    overflow: visible;
+    display: inline;
+}
+
+.Pop{
+    width: 70px;
+    height: 70px;
+    background-color: aliceblue;
+    margin-left: 10px;
+    margin-right: 10px;
+    float: left;
+
+}
+.Pop:hover{
+    height: auto;
+}
+
+
+
+</style>
+
+</head>
+
+<body>
+    <!--<div style="width: 100%;height: 100%;background-color: black;position: absolute; top: 0%;left: 0%;"></div>-->
+    <div id="container"></div>
+    <div id="Research" value="0" style="position: relative; left: 0;top: 0; background-color: bisque; width: 100px;">
+        Research: 0
+    </div>
+    <button onclick="Save()" style="position: relative;top: 0%;left: 0%;float: left;z-index: 10;">Save</button>
+    <input style="position: relative;top: 0%;left: 0%;float: left;z-index: 10;" id="fileInput" type="file" value="Load">Load</input>
+    <div id="LeftBar"></div>
+    <div id="BottomBar">
+        <!--<button class="BottomClass" onclick="SpawnSheep()">Spawn Sheep</button>-->
+        <!--<button class="BottomClass" onclick="SpawnCivilian()">Spawn Civilian</button>-->
+    </div>
+    <div id="TopBar">
+
+    </div>
+    
+
+<script>
+
+function RNG(seed) {
+  // LCG using GCC's constants
+  this.m = 0x80000000; // 2**31;
+  this.a = 1103515245;
+  this.c = 12345;
+
+  this.state = seed ? seed : Math.floor(Math.random() * (this.m - 1));
+}
+RNG.prototype.nextInt = function() {
+  this.state = (this.a * this.state + this.c) % this.m;
+  return this.state;
+}
+RNG.prototype.nextFloat = function() {
+  // returns in range [0,1]
+  return this.nextInt() / (this.m - 1);
+}
+RNG.prototype.nextRange = function(start, end) {
+  // returns in range [start, end): including start, excluding end
+  // can't modulu nextInt because of weak randomness in lower bits
+  var rangeSize = end - start;
+  var randomUnder1 = this.nextInt() / this.m;
+  return start + Math.floor(randomUnder1 * rangeSize);
+}
+RNG.prototype.choice = function(array) {
+  return array[this.nextRange(0, array.length)];
+}
+
+var rng = new RNG(20);
+for (var i = 0; i < 10; i++)
+  console.log(rng.nextRange(10, 50));
+
+var digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+for (var i = 0; i < 10; i++)
+  console.log(rng.choice(digits));  
+
+const downloadToFile = (content, filename, contentType) => {
+  const a = document.createElement('a');
+  const file = new Blob([content], { type: contentType });
+
+  a.href = URL.createObjectURL(file);
+  a.download = filename;
+  a.click();
+
+  URL.revokeObjectURL(a.href);
+};
+LeftBar = document.getElementById("LeftBar")
+Wood = document.createElement("div")
+Wood.innerHTML = "Wood: 100"
+Wood.id = "Wood"
+Wood.value = 100
+Wood.className = "Materials"
+Wood.style.backgroundColor = "rgb(124, 81, 0)"
+LeftBar.appendChild(Wood)
+
+Stone = document.createElement("div")
+Stone.innerHTML = "Stone: 100"
+Stone.id = "Stone"
+Stone.value = 100
+Stone.className = "Materials"
+Stone.style.backgroundColor = "rgb(116, 116, 116)"
+LeftBar.appendChild(Stone)
+
+Iron = document.createElement("div")
+Iron.innerHTML = "Iron: 100"
+Iron.id = "Iron"
+Iron.value = 100
+Iron.className = "Materials"
+Iron.style.backgroundColor = "rgb(90, 90, 90)"
+LeftBar.appendChild(Iron)
+
+Food = document.createElement("div")
+Food.innerHTML = "Food: 100"
+Food.id = "Food"
+Food.value = 100
+Food.className = "Materials"
+Food.style.backgroundColor = "rgb(191, 155, 73)"
+LeftBar.appendChild(Food)
+
+data = ""
+SpawnEntity = ""
+function Save(){
+    downloadToFile(data, 'SaveFileDwarfFortress.txt', 'text/plain');
+}
+//function Load(){
+    document.getElementById('fileInput')
+            .addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = function () {
+                    const content = reader.result;
+                    //console.log(content);
+                    data = content
+                    FullContentArray = content.split("\n")
+                    //console.log(FullContentArray)
+                    for(let i = 0;i<FullContentArray.length-1;i++){
+                        line = FullContentArray[i].split(",")
+                        document.getElementById("CellID,"+line[0]+","+line[1]).style.backgroundColor = line[2]
+                    }
+                };
+
+                reader.onerror = function () {
+                    console.error('Error reading the file');
+                };
+
+                reader.readAsText(file, 'utf-8');
+            });
+//}
+ArrayOfNames = ["Alan","Adam","Aseni","Gary","Baltimore","Erin","Sam","Kate","Marta","Victoria","Nick"]
+GroundZero = []
+MineOne = []
+WorkerArray = []
+ConveyorBeltArray = []
+ChestArray = []
+FarmArray = []
+ForesterArray=[]
+function createNoise(){
+    
+    noise = []
+    range = 6400
+    elevation = 50
+    density = 400
+    for(let i = 0;i<Math.sqrt(range)+400;i++){
+        row = []
+        for(let j = 0; j<Math.sqrt(range)+400;j++){
+            row.push(0)
+        }
+        noise.push(row)
+    }
+    for(let i = 0;i<Math.sqrt(range)+400;i++){
+        
+        for(let j = 0; j<Math.sqrt(range)+400;j++){
+            value = noise[i][j] + rng.nextFloat()*(density-(-density))+density
+            if(value>255){
+                value = value/elevation
+            }
+            if(value<0){
+                value = value/-elevation
+            }
+            try{
+                noise[i-1][j-1] += value
+            }
+            catch{
+                continue
+            }
+            try{
+                noise[i][j-1] += value
+            }
+            catch{
+                continue
+            }
+            try{
+                noise[i+1][j-1] += value
+            }
+            catch{
+                continue
+            }try{
+                noise[i-1][j] += value
+            }
+            catch{
+                continue
+            }
+            
+            try{
+                noise[i+1][j] += value
+            }
+            catch{
+                continue
+            }
+            try{
+                noise[i-1][j+1] += value
+            }
+            catch{
+                continue
+            }
+            try{
+                noise[i][j+1] += value
+            }
+            catch{
+                continue
+            }
+            try{
+                noise[i+1][j+1] += value
+            }
+            catch{
+                continue
+            }
+            try{
+                noise[i][j] += value
+            }
+            catch{
+                continue
+            }
+
+                
+        
+        }
+        
+    }
+    return noise
+    
+}
+noise = createNoise()
+MovedX = 0
+MovedY = 0
+ClickedCell = []
+function proceduralGen(){
+    container = document.getElementById("container");
+    while(container.firstChild){
+        container.removeChild(container.firstChild)
+    }
+    //console.log(window.innerWidth)
+    for(let i = 2+MovedX;i<parseInt(parseInt(window.innerWidth)/20)+2+MovedX;i++){
+        for(let j = 2+MovedY;j<parseInt(parseInt(window.innerHeight)/20)+2+MovedY+1;j++){
+            
+            cell = document.createElement("div");
+            cell.style.width = 20+'px';
+            cell.style.height = 20+'px';
+            cell.style.left = 20*i-40-(MovedX*20)+'px';
+            cell.style.top = 20*j-40-(MovedY*20)+'px';
+            cell.id = "CellID,"+i+","+j
+            cell.onclick = function CellOnclick(){
+                
+                while(ClickedCell[0]){
+                    ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                    document.body.removeChild(ClickedCell[2])
+                    ClickedCell.pop(0)
+                    ClickedCell.pop(0)
+                    ClickedCell.pop(0)
+                }
+
+
+
+                ClickedCell.push(this)
+                ClickedCell.push(this.style.backgroundColor)
+                this.style.backgroundColor = "red"
+                CellID = this.id
+                //console.log(CellID)
+                PopUp = document.createElement("div")
+                PopUp.class = "PopUpClass"
+                PopUp.style.left = parseInt(this.style.left) - 50 + "px"
+                PopUp.style.top = parseInt(this.style.top) + 20 + "px"
+                PopUp.style.position = "absolute"
+
+                PopUp.style.backgroundColor = "azure"
+                PopUp.style.width = "120px"
+                PopUp.style.height = "40px"
+                PopUp.id = "PopUp"
+
+                
+                GrassButton = document.createElement("button")
+                GrassButton.style.width = "40px"
+                GrassButton.style.height = "40px"
+                GrassButton.style.float = "left"
+                GrassButton.style.position = "relative"
+                GrassButton.innerHTML = "Teal"
+                
+                GrassButton.onclick = function GrassButtonOnclick(){
+                    document.getElementById(CellID).innerHTML = '"'
+                    
+                    while(ClickedCell[0]){
+                        ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                        document.body.removeChild(ClickedCell[2])
+                        ClickedCell.pop(0)
+                        ClickedCell.pop(0)
+                        ClickedCell.pop(0)
+                    }
+                    x = CellID.split(",")[1]
+                    y = CellID.split(",")[2]
+                    ClickedCellCurrent = document.getElementById(CellID)
+                    ClickedCellCurrent.style.backgroundColor = "rgb(0,"+noise[x][y]+",0)"
+                    
+                    /*fetch("SaveFileDwarfFortress.txt")
+                    .then((res) => res.text())
+                    .then((text) => {
+                        console.log(text)
+                    })
+                    .catch((e) => console.error(e));*/
+                }
+                PopUp.appendChild(GrassButton)
+                
+                if(this.innerHTML == "M"){
+
+                }
+
+                if(this.innerHTML == "#"){
+                    MineButton = document.createElement("button")
+                    MineButton.style.width = "40px"
+                    MineButton.style.height = "40px"
+                    MineButton.style.float = "left"
+                    MineButton.style.position = "relative"
+                    MineButton.innerHTML = "Mine"
+                    
+                    MineButton.onclick = function MineOnclick(){
+                        document.getElementById(CellID).innerHTML = 'O'
+                        
+                        document.getElementById("Stone").innerHTML = "Stone: "+(parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1])+10)
+                        document.getElementById("Stone").value = parseInt(document.getElementById("Stone").value)+10
+                        while(ClickedCell[0]){
+                            ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                            document.body.removeChild(ClickedCell[2])
+                            ClickedCell.pop(0)
+                            ClickedCell.pop(0)
+                            ClickedCell.pop(0)
+                        }
+                        x = CellID.split(",")[1]
+                        y = CellID.split(",")[2]
+                        ClickedCellCurrent = document.getElementById(CellID)
+                        ClickedCellCurrent.style.backgroundColor = "rgb(84,84,84)"
+                        data += x.toString()+","+y.toString()+",rgb(84,84,84)"+"\n"
+                        
+                        /*fetch("SaveFileDwarfFortress.txt")
+                        .then((res) => res.text())
+                        .then((text) => {
+                            console.log(text)
+                        })
+                        .catch((e) => console.error(e));*/
+                    }
+                    PopUp.appendChild(MineButton)
+
+                    BuildMinerButton = document.createElement("button")
+                    BuildMinerButton.style.width = "40px"
+                    BuildMinerButton.style.height = "40px"
+                    BuildMinerButton.style.float = "left"
+                    BuildMinerButton.style.position = "relative"
+                    BuildMinerButton.innerHTML = "Build Miner"
+                    BuildMinerButton.onclick = function BuildMinerButtonOnclick(){
+                        
+                        if(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1]) >= 10){
+                            while(ClickedCell[0]){
+                                ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                                document.body.removeChild(ClickedCell[2])
+                                ClickedCell.pop(0)
+                                ClickedCell.pop(0)
+                                ClickedCell.pop(0)
+                            }
+                            
+                            CurrCell = document.getElementById(CellID)
+                            WorkerArray.push(CurrCell,"M")
+                            CurrCell.value = 0
+                            CurrCell.style.backgroundColor = "rgb(160, 160, 160)"
+                            CurrCell.innerHTML = "M"
+                            document.getElementById("Iron").innerHTML = "Iron: "+(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])-10)
+                            document.getElementById("Iron").value = parseInt(document.getElementById("Iron").value)-10
+                            document.body.removeChild(PopUp)
+                        }
+                    }
+                    PopUp.appendChild(BuildMinerButton)
+
+
+                
+                }else if(this.innerHTML == "T"){
+                    ChopButton = document.createElement("button")
+                    ChopButton.style.width = "40px"
+                    ChopButton.style.height = "40px"
+                    ChopButton.style.float = "left"
+                    ChopButton.style.position = "relative"
+                    ChopButton.innerHTML = "Chop"
+                    ChopButton.onclick = function ChopOnclick(){
+                        document.getElementById(CellID).innerHTML = '|'
+                        
+                        document.getElementById("Wood").innerHTML = "Wood: "+(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1])+10)
+                        document.getElementById("Wood").value = parseInt(document.getElementById("Wood").value)+10
+                        while(ClickedCell[0]){
+                            ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                            document.body.removeChild(ClickedCell[2])
+                            ClickedCell.pop(0)
+                            ClickedCell.pop(0)
+                            ClickedCell.pop(0)
+                        }
+                        x = CellID.split(",")[1]
+                        y = CellID.split(",")[2]
+                        ClickedCellCurrent = document.getElementById(CellID)
+                        data += x.toString()+","+y.toString()+",|"+"\n"
+                    }
+                    PopUp.appendChild(ChopButton)
+
+                    BuildForesterButton = document.createElement("button")
+                    BuildForesterButton.style.width = "40px"
+                    BuildForesterButton.style.height = "40px"
+                    BuildForesterButton.style.float = "left"
+                    BuildForesterButton.style.position = "relative"
+                    BuildForesterButton.innerHTML = "Build Forester"
+                    BuildForesterButton.onclick = function ChopOnclick(){
+                        StoneOwned = parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1])
+                        IronOwned = parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])
+                        if(StoneOwned >= 10 && IronOwned >= 10){
+                            ForesterArray.push(document.getElementById(CellID))
+                            
+                            document.getElementById(CellID).innerHTML = 'F'
+                            document.getElementById(CellID).value = 0
+                            document.getElementById("Stone").innerHTML = "Stone: "+(parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1])-10)
+                            document.getElementById("Stone").value = parseInt(document.getElementById("Stone").value)-10
+                            document.getElementById("Iron").innerHTML = "Iron: "+(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])-10)
+                            document.getElementById("Iron").value = parseInt(document.getElementById("Iron").value)-10
+
+                            while(ClickedCell[0]){
+                                ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                                document.body.removeChild(ClickedCell[2])
+                                ClickedCell.pop(0)
+                                ClickedCell.pop(0)
+                                ClickedCell.pop(0)
+                            }
+                            x = CellID.split(",")[1]
+                            y = CellID.split(",")[2]
+                            ClickedCellCurrent = document.getElementById(CellID)
+                            data += x.toString()+","+y.toString()+",|"+"\n"
+                        }
+                    }
+
+                    PopUp.appendChild(BuildForesterButton)
+                }else if(this.innerHTML == "O"){
+                    MineButton = document.createElement("button")
+                    MineButton.style.width = "40px"
+                    MineButton.style.height = "40px"
+                    MineButton.style.float = "left"
+                    MineButton.style.position = "relative"
+                    MineButton.innerHTML = "Mine"
+                    
+                    MineButton.onclick = function MineOnclick(){
+                        document.getElementById(CellID).innerHTML = 'X'
+                        
+                        document.getElementById("Iron").innerHTML = "Iron: "+(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])+5)
+                        document.getElementById("Iron").value = parseInt(document.getElementById("Iron").value)+5
+                        while(ClickedCell[0]){
+                            ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                            document.body.removeChild(ClickedCell[2])
+                            ClickedCell.pop(0)
+                            ClickedCell.pop(0)
+                            ClickedCell.pop(0)
+                        }
+                        x = CellID.split(",")[1]
+                        y = CellID.split(",")[2]
+                        ClickedCellCurrent = document.getElementById(CellID)
+                        ClickedCellCurrent.style.backgroundColor = "rgb(44,44,44)"
+                        data += x.toString()+","+y.toString()+",rgb(44,44,44)"+"\n"
+                        
+                        /*fetch("SaveFileDwarfFortress.txt")
+                        .then((res) => res.text())
+                        .then((text) => {
+                            console.log(text)
+                        })
+                        .catch((e) => console.error(e));*/
+                    }
+                    PopUp.appendChild(MineButton)
+                }else if(this.innerHTML == 'R' && !document.getElementById("ResearchPopUp")){
+                    
+                    ResearchPopUp = document.createElement("div")
+                    ResearchPopUp.id = "ResearchPopUp"
+                    CloseButton = document.createElement("button")
+                    CloseButton.innerHTML = "X"
+                    CloseButton.className = "CloseButton"
+                    CloseButton.onclick = function CloseResearchPopUp(){
+                        document.body.removeChild(this.parentNode)
+                    }
+                    AddResearchButton = document.createElement("button")
+                    AddResearchButton.id = "AddResearchButton"
+                    AddResearchButton.innerHTML = "Add Research"
+                    AddResearchButton.onclick = function AddResearch(){
+                        WoodOwned = parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1])
+                        StoneOwned = parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1])
+                        IronOwned = parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])
+                        if(WoodOwned >= 10 && StoneOwned >= 10 && IronOwned >= 5){
+                            document.getElementById("Wood").innerHTML = "Wood: "+(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1])-10)
+                            document.getElementById("Wood").value = parseInt(document.getElementById("Wood").value)-10
+                            document.getElementById("Stone").innerHTML = "Stone: "+(parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1])-10)
+                            document.getElementById("Stone").value = parseInt(document.getElementById("Stone").value)-10
+                            document.getElementById("Iron").innerHTML = "Iron: "+(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])-5)
+                            document.getElementById("Iron").value = parseInt(document.getElementById("Iron").value)-5
+                            document.getElementById("Research").innerHTML = "Research: "+(parseInt(document.getElementById("Research").innerHTML.split("Research: ")[1])+1)
+                        }
+                    }
+                    ResearchClasses = document.createElement("div")
+                    ResearchClasses.id = "ResearchClasses"
+
+
+                    BuildingResearchEncapsulatingDiv = document.createElement("div")
+                    BuildingResearch = document.createElement("div")
+                    BuildingResearchName = document.createElement("p")
+                    BuildingResearchName.innerHTML = "Building Research"
+                    BuildingResearchName.className = "ResearchName"
+                    BuildingResearch.className = "ResearchClassesClass"
+                    for(let i = 0;i<10;i++){
+                        ResearchBox = document.createElement("button")
+                        ResearchBox.className = "ResearchBox"
+                        BuildingResearch.appendChild(ResearchBox)
+                    }
+                    BuildingResearchEncapsulatingDiv.appendChild(BuildingResearchName)
+                    ResearchClasses.appendChild(BuildingResearchEncapsulatingDiv)
+                    BuildingResearchEncapsulatingDiv.appendChild(BuildingResearch)
+
+
+                    ToolsResearchEncapsulatingDiv = document.createElement("div")
+                    ToolsResearch = document.createElement("div")
+                    ToolsResearchName = document.createElement("p")
+                    ToolsResearchName.innerHTML = "Tools Research"
+                    ToolsResearchName.className = "ResearchName"
+                    ToolsResearch.className = "ResearchClassesClass"
+                    for(let i = 0;i<10;i++){
+                        ResearchBox = document.createElement("button")
+                        ResearchBox.className = "ResearchBox"
+                        ToolsResearch.appendChild(ResearchBox)
+                    }
+                    ToolsResearchEncapsulatingDiv.appendChild(ToolsResearchName)
+                    ToolsResearchEncapsulatingDiv.appendChild(ToolsResearch)
+                    //<!--<button class="BottomClass" onclick="SpawnSheep()">Spawn Sheep</button>-->
+                    //<!--<button class="BottomClass" onclick="SpawnCivilian()">Spawn Civilian</button>-->
+                    
+                    ResearchClasses.appendChild(ToolsResearchEncapsulatingDiv)
+
+                    
+                    OverworldResearchEncapsulatingDiv = document.createElement("div")
+                    OverworldResearch = document.createElement("div")
+                    OverworldResearchName = document.createElement("p")
+                    OverworldResearchName.innerHTML = "Overworld Research"
+                    OverworldResearchName.className = "ResearchName"
+                    OverworldResearch.className = "ResearchClassesClass"
+                    for(let i = 0;i<10;i++){
+                        ResearchBox = document.createElement("button")
+                        ResearchBox.className = "ResearchBox"
+                        OverworldResearch.appendChild(ResearchBox)
+                    }
+                    OverworldResearchEncapsulatingDiv.appendChild(OverworldResearchName)
+                    OverworldResearchEncapsulatingDiv.appendChild(OverworldResearch)
+                    ResearchClasses.appendChild(OverworldResearchEncapsulatingDiv)
+
+                    OverworldResearch.children[0].innerHTML = "Sheep"
+                    OverworldResearch.children[0].style.backgroundColor = "white"
+                    OverworldResearch.children[0].onclick = function AddSpawnSheep(){
+                        if(parseInt(document.getElementById("Research").innerHTML.split(":")[1]) >= 3){
+                            SpawnSheepButton = document.createElement("button")
+                            SpawnSheepButton.className = "BottomClass"
+                            SpawnSheepButton.onclick = function SpawnSheepButtonFunction(){SpawnSheep()}
+                            SpawnSheepButton.innerHTML = "Spawn Sheep"
+                            document.getElementById("BottomBar").appendChild(SpawnSheepButton)
+                            this.disabled = true
+                            document.getElementById("Research").innerHTML = "Research: "+(parseInt(document.getElementById("Research").innerHTML.split(":")[1])-3)
+                            document.getElementById("Research").value = parseInt(document.getElementById("Research").innerHTML.split(":")[1])
+                        }
+                        
+                    }
+
+                    OverworldResearch.children[1].innerHTML = "Civilians"
+                    OverworldResearch.children[1].style.backgroundColor = "rgb(204, 102, 0)"
+                    OverworldResearch.children[1].onclick = function AddSpawnCivilians(){
+                        if(parseInt(document.getElementById("Research").innerHTML.split(":")[1]) >= 3){
+                            SpawnCiviliansButton = document.createElement("button")
+                            SpawnCiviliansButton.className = "BottomClass"
+                            SpawnCiviliansButton.onclick = function SpawnCiviliansButtonFunction(){SpawnCivilian()}
+                            SpawnCiviliansButton.innerHTML = "Spawn Civilians"
+                            document.getElementById("BottomBar").appendChild(SpawnCiviliansButton)
+                            this.disabled = true
+                            document.getElementById("Research").innerHTML = "Research: "+(parseInt(document.getElementById("Research").innerHTML.split(":")[1])-3)
+                            document.getElementById("Research").value = parseInt(document.getElementById("Research").innerHTML.split(":")[1])
+                        }
+                        
+                    }
+
+
+                    ResearchPopUp.appendChild(ResearchClasses)
+                    ResearchPopUp.appendChild(AddResearchButton)
+                    ResearchPopUp.appendChild(CloseButton)
+                    document.body.appendChild(ResearchPopUp)
+                    
+
+                }else if(this.innerHTML == '"'){
+                    //Farm button that when you hover over cells you can show how big or small the farm you can make based on your resources
+                    FarmButton = document.createElement("button")
+                    FarmButton.style.width = "40px"
+                    FarmButton.style.height = "40px"
+                    FarmButton.style.float = "left"
+                    FarmButton.style.position = "relative"
+                    FarmButton.innerHTML = "Farm"
+                    FarmButton.onclick = function FarmOnclick(){
+                        
+                        document.getElementById(CellID).innerHTML = '~'
+                        FarmArray.push(document.getElementById(CellID))
+                        //document.getElementById("Iron").innerHTML = "Iron: "+(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])+5)
+                        //document.getElementById("Iron").value = parseInt(document.getElementById("Iron").value)+5
+                        while(ClickedCell[0]){
+                            ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                            document.body.removeChild(ClickedCell[2])
+                            ClickedCell.pop(0)
+                            ClickedCell.pop(0)
+                            ClickedCell.pop(0)
+                        }
+                        x = CellID.split(",")[1]
+                        y = CellID.split(",")[2]
+                        ClickedCellCurrent = document.getElementById(CellID)
+                        ClickedCellCurrent.style.backgroundColor = "rgb(115,46,0)"
+                        data += x.toString()+","+y.toString()+",rgb(149,60,0)"+"\n"
+                    }
+                    
+                    PopUp.appendChild(FarmButton)
+
+                BuildButton = document.createElement("button")
+                BuildButton.style.width = "40px"
+                BuildButton.style.height = "40px"
+                BuildButton.style.float = "left"
+                BuildButton.style.position = "relative"
+                BuildButton.innerHTML = "Build"
+                BuildButton.onclick = function BuildOnclick(){
+                    while(ClickedCell[0]){
+                        ClickedCell[0].style.backgroundColor = ClickedCell[1]
+                        document.body.removeChild(ClickedCell[2])
+                        ClickedCell.pop(0)
+                        ClickedCell.pop(0)
+                        ClickedCell.pop(0)
+                    }
+                    CurrCell = document.getElementById(CellID)
+                    PopUp = document.createElement("div")
+                    PopUp.className = "PopUpClass"
+                    PopUp.style.left = parseInt(CurrCell.style.left) - 50 + "px"
+                    PopUp.style.top = parseInt(CurrCell.style.top) + 20 + "px"
+                    PopUp.style.position = "absolute"
+                    PopUp.style.backgroundColor = "azure"
+                    PopUp.style.width = "auto"
+                    PopUp.style.height = "40px"
+
+                    CloseButton = document.createElement("button")
+                    CloseButton.style.width = "40px"
+                    CloseButton.style.height = "40px"
+                    CloseButton.style.float = "left"
+                    CloseButton.style.position = "relative"
+                    CloseButton.style.backgroundColor = "red"
+                    CloseButton.innerHTML = "Close"
+                    CloseButton.onclick = function ClosePopUp(){
+                    
+                        document.body.removeChild(this.parentNode)
+                    }
+                    PopUp.appendChild(CloseButton)
+
+                    WoodWallButton = document.createElement("button")
+                    WoodWallButton.style.width = "40px"
+                    WoodWallButton.style.height = "40px"
+                    WoodWallButton.style.float = "left"
+                    WoodWallButton.style.position = "relative"
+                    WoodWallButton.style.backgroundColor = "rgb(124, 81, 0)"
+                    WoodWallButton.innerHTML = "Wood Wall"
+                    WoodWallButton.onclick = function WoodWallButtonOnclick(){
+                        if(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1]) >= 10){
+                            CurrCell.style.backgroundColor = "rgb(124, 81, 0)"
+                            CurrCell.innerHTML = "H"
+                            document.getElementById("Wood").innerHTML = "Wood: "+(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1])-10)
+                            document.getElementById("Wood").value = parseInt(document.getElementById("Wood").value)-10
+                            document.body.removeChild(PopUp)
+                        } 
+                    }
+                    PopUp.appendChild(WoodWallButton)
+
+
+                    StoneWalkButton = document.createElement("button")
+                    StoneWalkButton.style.width = "40px"
+                    StoneWalkButton.style.height = "40px"
+                    StoneWalkButton.style.float = "left"
+                    StoneWalkButton.style.position = "relative"
+                    StoneWalkButton.style.backgroundColor = "rgb(124, 124, 124)"
+                    StoneWalkButton.innerHTML = "Stone Walk"
+                    StoneWalkButton.onclick = function StoneWalkButtonOnclick(){
+                        if(parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1]) >= 10){
+                            CurrCell.style.backgroundColor = "rgb(124, 124, 124)"
+                            CurrCell.innerHTML = "+"
+                            document.getElementById("Stone").innerHTML = "Stone: "+(parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1])-10)
+                            document.getElementById("Stone").value = parseInt(document.getElementById("Stone").value)-10
+                            document.body.removeChild(PopUp)
+                        } 
+                    }
+                    PopUp.appendChild(StoneWalkButton)
+
+                    StoneWallButton = document.createElement("button")
+                    StoneWallButton.style.width = "40px"
+                    StoneWallButton.style.height = "40px"
+                    StoneWallButton.style.float = "left"
+                    StoneWallButton.style.position = "relative"
+                    StoneWallButton.style.backgroundColor = "rgb(116, 116, 116)"
+                    StoneWallButton.innerHTML = "Stone Wall"
+                    StoneWallButton.onclick = function StoneWallButtonOnclick(){
+                        if(parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1]) >= 10){
+                            CurrCell.style.backgroundColor = "rgb(116, 116, 116)"
+                            CurrCell.innerHTML = "H"
+                            document.getElementById("Stone").innerHTML = "Stone: "+(parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1])-10)
+                            document.getElementById("Stone").value = parseInt(document.getElementById("Stone").value)-10
+                            document.body.removeChild(PopUp)
+                        } 
+                    }
+                    PopUp.appendChild(StoneWallButton)
+
+
+                    DoorButton = document.createElement("button")
+                    DoorButton.style.width = "40px"
+                    DoorButton.style.height = "40px"
+                    DoorButton.style.float = "left"
+                    DoorButton.style.position = "relative"
+                    DoorButton.style.backgroundColor = "rgb(104, 81, 0)"
+                    DoorButton.innerHTML = "Door"
+                    DoorButton.onclick = function DoorButtonOnclick(){
+                        if(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1]) >= 10 && parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1]) >= 5){
+                            CurrCell.style.backgroundColor = "rgb(104, 81, 0)"
+                            CurrCell.innerHTML = "%"
+                            document.getElementById("Wood").innerHTML = "Wood: "+(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1])-10)
+                            document.getElementById("Wood").value = parseInt(document.getElementById("Wood").value)-10
+                            document.getElementById("Iron").innerHTML = "Iron: "+(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])-5)
+                            document.getElementById("Iron").value = parseInt(document.getElementById("Iron").value)-5
+                            document.body.removeChild(PopUp)
+                        } 
+                    }
+                    PopUp.appendChild(DoorButton)
+
+                    FloorButton = document.createElement("button")
+                    FloorButton.style.width = "40px"
+                    FloorButton.style.height = "40px"
+                    FloorButton.style.float = "left"
+                    FloorButton.style.position = "relative"
+                    FloorButton.style.backgroundColor = "rgb(104, 81, 0)"
+                    FloorButton.innerHTML = "Floor"
+                    FloorButton.onclick = function FloorButtonOnclick(){
+                        if(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1]) >= 5){
+                            CurrCell.style.backgroundColor = "rgb(104, 81, 0)"
+                            CurrCell.innerHTML = "="
+                            document.getElementById("Wood").innerHTML = "Wood: "+(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1])-5)
+                            document.getElementById("Wood").value = parseInt(document.getElementById("Wood").value)-5
+                            document.body.removeChild(PopUp)
+                        } 
+                    }
+                    PopUp.appendChild(FloorButton)
+
+
+                    ConeyorBeltButton = document.createElement("button")
+                    ConeyorBeltButton.style.width = "40px"
+                    ConeyorBeltButton.style.height = "40px"
+                    ConeyorBeltButton.style.float = "left"
+                    ConeyorBeltButton.style.position = "relative"
+                    ConeyorBeltButton.style.backgroundColor = "rgb(180, 180, 180)"
+                    ConeyorBeltButton.innerHTML = "Conveyor Belt"
+                    ConeyorBeltButton.onclick = function ConeyorBeltButtonOnclick(){
+                        if(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1]) >= 5){
+                            CurrCell.value = "Left,Wood,0,Stone,0,Iron,0"
+                            CurrCell.style.backgroundColor = "rgb(180, 180, 180)"
+                            CurrCell.innerHTML = "<"
+                            document.getElementById("Iron").innerHTML = "Iron: "+(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])-5)
+                            document.getElementById("Iron").value = parseInt(document.getElementById("Iron").value)-5
+                            document.body.removeChild(PopUp)
+                            ConveyorBeltArray.push(CurrCell)
+                        } 
+                    }
+                    
+                    PopUp.appendChild(ConeyorBeltButton)
+
+
+                    ChestButton = document.createElement("button")
+                    ChestButton.style.width = "40px"
+                    ChestButton.style.height = "40px"
+                    ChestButton.style.float = "left"
+                    ChestButton.style.position = "relative"
+                    ChestButton.style.backgroundColor = "rgb(104, 81, 0)"
+                    ChestButton.innerHTML = "Chest"
+                    ChestButton.onclick = function ChestButtonOnclick(){
+                        if(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1]) >= 5){
+                            CurrCell.style.backgroundColor = "rgb(104, 81, 0)"
+                            CurrCell.innerHTML = "&"
+                            CurrCell.value = "Chest,Wood,0,Stone,0,Iron,0"
+                            ChestArray.push(CurrCell)
+                            document.getElementById("Wood").innerHTML = "Wood: "+(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1])-5)
+                            document.getElementById("Wood").value = parseInt(document.getElementById("Wood").value)-5
+                            document.body.removeChild(PopUp)
+                        } 
+                    }
+                    PopUp.appendChild(ChestButton)
+
+
+                    ResearcherButton = document.createElement("button")
+                    ResearcherButton.style.width = "40px"
+                    ResearcherButton.style.height = "40px"
+                    ResearcherButton.style.float = "left"
+                    ResearcherButton.style.position = "relative"
+                    ResearcherButton.style.backgroundColor = "rgb(30, 30, 120)"
+                    ResearcherButton.innerHTML = "Research"
+                    ResearcherButton.onclick = function ResearcherButtonOnclick(){
+                        if(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1]) >= 5 && 
+                        parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1]) >= 20 &&
+                        parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1]) >= 15){
+                            CurrCell.style.backgroundColor = "rgb(30, 30, 120)"
+                            CurrCell.innerHTML = "R"
+                            
+                            document.getElementById("Wood").innerHTML = "Wood: "+(parseInt(document.getElementById("Wood").innerHTML.split("Wood: ")[1])-5)
+                            document.getElementById("Wood").value = parseInt(document.getElementById("Wood").value)-5
+
+                            document.getElementById("Stone").innerHTML = "Stone: "+(parseInt(document.getElementById("Stone").innerHTML.split("Stone: ")[1])-20)
+                            document.getElementById("Stone").value = parseInt(document.getElementById("Stone").value)-20
+
+                            document.getElementById("Iron").innerHTML = "Iron: "+(parseInt(document.getElementById("Iron").innerHTML.split("Iron: ")[1])-15)
+                            document.getElementById("Iron").value = parseInt(document.getElementById("Iron").value)-15
+                            document.body.removeChild(PopUp)
+                        } 
+                    }
+                    PopUp.appendChild(ResearcherButton)
+
+                    document.body.appendChild(PopUp)
+
+                }
+                PopUp.appendChild(BuildButton)
+            }else if(this.innerHTML == '&lt;'){
+                //console.log(this.style.rotate)
+                if(this.style.rotate == "0deg" || this.style.rotate == ""){
+                    this.style.rotate = "90deg"
+
+                    this.value = "Up,"+this.value.split(",").slice(1)
+                }
+                else if(this.style.rotate == "90deg"){
+                    this.style.rotate = "180deg"
+                    this.value = "Right,"+this.value.split(",").slice(1)
+                }
+                else if(this.style.rotate == "180deg"){
+                    this.style.rotate = "270deg"
+                    this.value = "Down,"+this.value.split(",").slice(1)
+                }
+                else if(this.style.rotate == "270deg"){
+                    this.style.rotate = "0deg"
+                    this.value = "Left,"+this.value.split(",").slice(1)
+                }
+                //console.log(this.value)
+                
+            }else if(this.innerHTML == '&amp;'){
+                console.log(this.value)
+            }
+                
+
+                ClickedCell.push(PopUp)
+                document.body.appendChild(PopUp)
+                //console.log(SpawnEntity)
+            if(SpawnEntity != ""){
+                
+                if(SpawnEntity == "Sheep" && this.innerHTML=="~"){
+                    //console.log()
+                    
+                    CellID = this.id
+                    x = parseInt(CellID.split(",")[1])-2
+                    y = parseInt(CellID.split(",")[2])-2
+                    //console.log(x,y)
+                    Sheep = new Entity(x,y,"Sheep")
+                    SheepName = ArrayOfNames[Math.floor(Math.random() * (ArrayOfNames.length-1))]
+                    Sheep.name = SheepName
+                    Sheep.entity.value = SheepName
+
+                    Sheep.Spawn()
+                    Sheep.Move()
+                    Sheep.entity.onmouseover = function SheepMouseOver(){
+                        if(!document.getElementById("SheepInfo")){
+                            SheepInfo = document.createElement("div")
+                            SheepInfo.style.width = "auto"
+                            SheepInfo.style.height = "auto"
+                            SheepInfo.style.backgroundColor = "white"
+                            SheepInfo.style.position = "absolute"
+                            SheepInfo.style.left = "50%"
+                            SheepInfo.style.top = "-20px"
+                            SheepInfo.style.transform = "translateX(-50%)"
+                            SheepInfo.id = "SheepInfo"
+                            SheepInfo.innerHTML = this.value
+                            this.appendChild(SheepInfo)
+                        }
+                        
+                    }
+                    Sheep.entity.onmouseleave = function SheepMouseLeave(){
+                        document.getElementById("SheepInfo").remove()
+                    }
+                    EntityArray.push(Sheep)
+
+                    TopBar = document.getElementById("TopBar")
+                    
+                    if(TopBar.contains(document.getElementById("SheepPop"))){
+                        SheepPopRep = document.createElement("div")
+                        SheepPopRep.style.backgroundColor = "white"
+                        SheepPopRep.style.width = "70px"
+                        SheepPopRep.style.height = "70px"
+                        SheepPopRep.innerHTML = "SHEP: "+Sheep.name
+                        document.getElementById("SheepPop").appendChild(SheepPopRep)
+                    }
+                    else{
+
+                        SheepPop = document.createElement("div")
+                        SheepPop.id = "SheepPop"
+                        SheepPop.className = "Pop"
+                        TopBar.appendChild(SheepPop)
+                        SheepPopRep = document.createElement("div")
+                        SheepPopRep.style.backgroundColor = "white"
+                        SheepPopRep.style.width = "70px"
+                        SheepPopRep.style.height = "70px"
+                        SheepPopRep.innerHTML = "SHEP: "+Sheep.name
+                        
+                        SheepPop.appendChild(SheepPopRep)
+                    }
+                    
+                }
+                if(SpawnEntity == "Civilian" && this.innerHTML == "="){
+                    //console.log()
+                    CellID = this.id
+                    x = parseInt(CellID.split(",")[1])-2
+                    y = parseInt(CellID.split(",")[2])-2
+                    //console.log(x,y)
+                    Civilian = new Entity(x,y,"Civilian")
+                    Civilian.Spawn()
+                    Civilian.Move()
+                    EntityArray.push(Civilian)
+                    CivilianName = ArrayOfNames[Math.floor(Math.random() * (ArrayOfNames.length-1))]
+                    Civilian.name = CivilianName
+                    Civilian.entity.value = CivilianName
+
+                    Civilian.entity.onmouseover = function CivilianMouseOver(){
+                        if(!document.getElementById("CivilianInfo")){
+                            console.log("OVer")
+                            CivilianInfo = document.createElement("div")
+                            CivilianInfo.style.width = "auto"
+                            CivilianInfo.style.height = "auto"
+                            CivilianInfo.style.backgroundColor = "white"
+                            CivilianInfo.style.position = "absolute"
+                            CivilianInfo.style.left = "50%"
+                            CivilianInfo.style.top = "-20px"
+                            CivilianInfo.style.transform = "translateX(-50%)"
+                            CivilianInfo.id = "CivilianInfo"
+                            CivilianInfo.innerHTML = this.value
+                            this.appendChild(CivilianInfo)
+                        }
+                        
+                    }
+                    Civilian.entity.onmouseleave = function CivilianMouseLeave(){
+                        document.getElementById("CivilianInfo").remove()
+                    }
+
+                    TopBar = document.getElementById("TopBar")
+                    
+                    if(TopBar.contains(document.getElementById("CivilPop"))){
+                        CivilPopRep = document.createElement("div")
+                        CivilPopRep.style.backgroundColor = "rgb(204, 102, 0)"
+                        CivilPopRep.style.width = "70px"
+                        CivilPopRep.style.height = "70px"
+                        CivilPopRep.innerHTML = "Civilian: "+Civilian.name
+                        document.getElementById("CivilPop").appendChild(CivilPopRep)
+                    }
+                    else{
+
+                        CivilPop = document.createElement("div")
+                        CivilPop.id = "CivilPop"
+                        CivilPop.className = "Pop"
+                        TopBar.appendChild(CivilPop)
+                        CivilPopRep = document.createElement("div")
+                        CivilPopRep.style.backgroundColor = "rgb(204, 102, 0)"
+                        CivilPopRep.style.width = "70px"
+                        CivilPopRep.style.height = "70px"
+                        CivilPopRep.innerHTML = "Civilian: "+Civilian.name
+                        CivilPop.appendChild(CivilPopRep)
+                    }
+                    
+                }
+                SpawnEntity = ""
+            }
+            }
+            
+
+            if(noise[i][j] < 130){
+                //cell.style.background = 'rgb('+0+','+0+','+noise[i][j]+')';
+                cell.style.background = 'rgb('+0+','+noise[i][j]+','+0+')';
+                cell.innerHTML = "T"
+            }
+            else if(noise[i][j] >= 130 && noise[i][j] < 150){
+                cell.style.background = 'rgb('+noise[i][j]+','+noise[i][j]+','+0+')';
+                cell.innerHTML = "#"
+            }
+            else if(noise[i][j] >= 150){
+                cell.style.background = 'rgb('+0+','+noise[i][j]+','+0+')';
+                cell.innerHTML = '"'
+            }
+            GroundZero.push(cell)
+            container.appendChild(cell);
+        }
+    }
+    for(let i = 0;i<(data.split("\n").length);i++){
+        //console.log(data.split("\n")[i])
+    }
+    
+}
+function displayNoise(){
+    container = document.getElementById("container");
+    
+    for(let i = 0;i<Math.sqrt(range)+100;i++){
+        for(let j = 0;j<Math.sqrt(range)+100;j++){
+            
+            cell = document.createElement("div");
+            cell.style.width = 10+'px';
+            cell.style.height = 10+'px';
+            cell.style.left = 10*i+'px';
+            cell.style.top = 10*j+'px';
+            cell.style.background = 'rgb('+noise[i][j]+','+noise[i][j]+','+noise[i][j]+')';
+
+            container.appendChild(cell);
+        }
+    }
+}
+//displayNoise()
+proceduralGen()
+MineClickedCell = []
+function proceduralGenMines(){
+    MineNoise = createNoise()
+    MineContainer = document.getElementById("MineContainer");
+    
+    //console.log(window.innerWidth)
+    for(let i = 2+MovedX;i<parseInt(parseInt(window.innerWidth)/20)+2+MovedX;i++){
+        for(let j = 2+MovedY;j<parseInt(parseInt(window.innerHeight)/20)+2+MovedY+1;j++){
+
+            Minecell = document.createElement("div");
+            Minecell.style.width = 20+'px';
+            Minecell.style.height = 20+'px';
+            Minecell.style.left = 20*i-40-(MovedX*20)+'px';
+            Minecell.style.top = 20*j-40-(MovedY*20)+'px';
+            Minecell.id = "CellID,"+i+","+j
+            //console.log(parseInt(MineNoise[i][j]))
+            if(parseInt(MineNoise[i][j]) <= 160){Minecell.style.background = 'rgb('+MineNoise[i][j]+','+MineNoise[i][j]+','+MineNoise[i][j]+')';Minecell.innerHTML="#"}
+            else if(parseInt(MineNoise[i][j]) >= 180 && parseInt(MineNoise[i][j]) <= 200){Minecell.style.background = 'rgb('+70+','+MineNoise[i][j]+','+70+')';Minecell.innerHTML="~"}
+            else if(parseInt(MineNoise[i][j]) >= 195){Minecell.style.background = 'rgb('+70+','+70+','+MineNoise[i][j]+')';Minecell.innerHTML="%"}
+            else{Minecell.style.background = 'rgb('+0+','+0+','+0+')';}
+
+            Minecell.onclick = function MineCellOnClick(){
+                while(MineClickedCell[0]){
+                    MineClickedCell[0].style.backgroundColor = MineClickedCell[1]
+                    document.body.removeChild(MineClickedCell[2])
+                    MineClickedCell.pop(0)
+                    MineClickedCell.pop(0)
+                    MineClickedCell.pop(0)
+                }
+
+
+
+                MineClickedCell.push(this)
+                MineClickedCell.push(this.style.backgroundColor)
+                
+                this.style.backgroundColor = "red"
+                CellID = this.id
+                console.log(CellID)
+                PopUp = document.createElement("div")
+                PopUp.class = "PopUpClass"
+                PopUp.style.left = parseInt(this.style.left) - 50 + "px"
+                PopUp.style.top = parseInt(this.style.top) + 20 + "px"
+                PopUp.style.position = "absolute"
+
+                PopUp.style.backgroundColor = "azure"
+                PopUp.style.width = "120px"
+                PopUp.style.height = "40px"
+                PopUp.id = "PopUp"
+                x = CellID.split(",")[1]
+                y = CellID.split(",")[2]
+                ClickedCellCurrent = document.getElementById(CellID)
+                //ClickedCellCurrent.style.backgroundColor = "rgb(84,84,84)"
+                //data += x.toString()+","+y.toString()+",rgb(84,84,84)"+"\n"
+
+                if(this.innerHTML == "#"){
+                    //console.log("#")
+                }
+                MineClickedCell.push(PopUp)
+                document.body.appendChild(PopUp)
+            }
+            
+            MineOne.push(Minecell)
+            MineContainer.appendChild(Minecell);
+        }
+    }
+    for(let i = 0;i<(data.split("\n").length);i++){
+        //console.log(data.split("\n")[i])
+    }
+}
+window.addEventListener(
+  "keydown",
+  (event) => {
+    if (event.defaultPrevented) {
+      return; // Do nothing if the event was already processed
+    }
+
+    switch (event.key) {
+      case "ArrowDown":
+        // Do something for "down arrow" key press.
+        //console.log("Down")
+
+        MovedX += 0
+        if(MovedY < Math.sqrt(range)+300){
+            MovedY += 1
+        }
+        
+        
+        
+        //proceduralGen()
+        break;
+      case "ArrowUp":
+        // Do something for "up arrow" key press.
+        MovedX += 0
+        if(MovedY>0){
+        MovedY += -1
+        }
+        //proceduralGen()
+        break;
+      case "ArrowLeft":
+        // Do something for "left arrow" key press.
+        if(MovedX>0){
+        MovedX += -1
+        }
+        MovedY += 0
+        //proceduralGen()
+        break;
+      case "ArrowRight":
+        // Do something for "right arrow" key press.
+        if(MovedX < Math.sqrt(range)+300){
+            MovedX += 1
+        }
+        
+        
+        MovedY += 0
+        //proceduralGen()
+        break;
+      case "Enter":
+        // Do something for "enter" or "return" key press.
+        break;
+      case " ":
+        // Do something for "space" key press.
+        break;
+      case "Escape":
+        
+        while(ClickedCell[0]){
+            ClickedCell[0].style.backgroundColor = ClickedCell[1]
+            document.body.removeChild(ClickedCell[2])
+            ClickedCell.pop(0)
+            ClickedCell.pop(0)
+            ClickedCell.pop(0)
+        }
+        while(MineClickedCell[0]){
+            MineClickedCell[0].style.backgroundColor = MineClickedCell[1]
+            document.body.removeChild(MineClickedCell[2])
+            MineClickedCell.pop(0)
+            MineClickedCell.pop(0)
+            MineClickedCell.pop(0)
+        }
+        document.body.removeChild(PopUp)
+        // Do something for "esc" key press.
+        break;
+      default:
+        return; // Quit when this doesn't handle the key event.
+    }
+
+    // Cancel the default action to avoid it being handled twice
+    event.preventDefault();
+  },
+  true,
+);
+const interval = setInterval(function() {
+    CurrentFood = parseInt(document.getElementById("Food").innerHTML.split(":")[1])
+    for(let i = 0;i<FarmArray.length;i++){
+        CurrentFood++;
+    }
+    document.getElementById("Food").innerHTML = "Food: "+CurrentFood
+
+    //Worker = Miner
+    //Left,Wood,0,Stone,0,Iron,0
+    for(let i = 0;i<WorkerArray.length;i+=2){
+        WorkerArray[i].value += 1
+        //console.log(WorkerArray[i].id)
+        WorkerCoordX = parseInt(WorkerArray[i].id.split(",")[1])
+        WorkerCoordY = parseInt(WorkerArray[i].id.split(",")[2])
+        //console.log(document.getElementById("CellID,"+(WorkerCoordX-1)+","+WorkerCoordY).innerHTML)
+        CoordinateArray = [[-1,0],[1,0],[0,-1],[0,1]]
+        for(let j=0;j<CoordinateArray.length;j++){
+            if(document.getElementById("CellID,"+(WorkerCoordX+CoordinateArray[j][0])+","+(WorkerCoordY+CoordinateArray[j][1])).innerHTML == "&lt;"){//Left
+                Conveyor = document.getElementById("CellID,"+(WorkerCoordX+CoordinateArray[j][0])+","+(WorkerCoordY+CoordinateArray[j][1]))
+                if(parseInt(Conveyor.value.split(",")[4]) < 1){
+                    WorkerArray[i].value -= 1
+                    Conveyor.value=Conveyor.value.split(",")[0]+","+((Conveyor.value.split(",")[1]))+","+(parseInt(Conveyor.value.split(",")[2]))+","+((Conveyor.value.split(",")[3]))+","+(parseInt(Conveyor.value.split(",")[4])+1)+","+((Conveyor.value.split(",")[5]))+","+(parseInt(Conveyor.value.split(",")[6])+1)
+                }
+            }
+        }
+        
+        
+    }
+
+    for(let i=0;i<ForesterArray.length;i++){
+        ForesterArray[i].value += 1
+        //console.log(ForesterArray[i].value)
+        ForesterCoordX = parseInt(ForesterArray[i].id.split(",")[1])
+        ForesterCoordY = parseInt(ForesterArray[i].id.split(",")[2])
+        CoordinateArray = [[-1,0],[1,0],[0,-1],[0,1]]
+        for(let j=0;j<CoordinateArray.length;j++){
+            if(document.getElementById("CellID,"+(ForesterCoordX+CoordinateArray[j][0])+","+(ForesterCoordY+CoordinateArray[j][1])).innerHTML == "&lt;"){//Left
+                Conveyor = document.getElementById("CellID,"+(ForesterCoordX+CoordinateArray[j][0])+","+(ForesterCoordY+CoordinateArray[j][1]))
+                if(parseInt(Conveyor.value.split(",")[2]) < 1){
+                    ForesterArray[i].value -= 1
+                    Conveyor.value=Conveyor.value.split(",")[0]+","+((Conveyor.value.split(",")[1]))+","+(parseInt(Conveyor.value.split(",")[2])+1)+","+((Conveyor.value.split(",")[3]))+","+(parseInt(Conveyor.value.split(",")[4]))+","+((Conveyor.value.split(",")[5]))+","+(parseInt(Conveyor.value.split(",")[6]))
+                }
+            }
+        }
+        
+    }
+
+    //Loop the same way through each conveyor belt and move all the material according to the orientation of the conveyor belts
+    for(let i=0;i<ConveyorBeltArray.length;i++){
+        Direction = ConveyorBeltArray[i].value.split(",")[0]
+        CBCoordX = ConveyorBeltArray[i].id.split(",")[1]
+        CBCoordY = ConveyorBeltArray[i].id.split(",")[2]
+        Materials = parseInt(ConveyorBeltArray[i].value.split(",")[2])+parseInt(ConveyorBeltArray[i].value.split(",")[4])+parseInt(ConveyorBeltArray[i].value.split(",")[6])
+        MetrialName = ConveyorBeltArray[i].value.split(",")[2]
+        //console.log(Materials)
+
+///Conveyor Belts
+        DirectionArray = ["Left","Right","Up","Down"]
+        CoordinateArray = [[-1,0],[1,0],[0,-1],[0,1]]
+        for(let j=0;j<CoordinateArray.length;j++){
+            if(Direction == DirectionArray[CoordinateArray.indexOf(CoordinateArray[j])] && document.getElementById("CellID,"+(parseInt(CBCoordX)+CoordinateArray[j][0])+","+(parseInt(CBCoordY)+CoordinateArray[j][1])).innerHTML == "&lt;" && parseInt(Materials) >= 1){//replicate this for all directions and chest
+                ThisCell = document.getElementById("CellID,"+(parseInt(CBCoordX)+CoordinateArray[j][0])+","+(parseInt(CBCoordY)+CoordinateArray[j][1]))
+                CurrWood = parseInt(ConveyorBeltArray[i].value.split(",")[2])
+                CurrStone = parseInt(ConveyorBeltArray[i].value.split(",")[4])
+                CurrIron = parseInt(ConveyorBeltArray[i].value.split(",")[6])
+                NewWood = CurrWood
+                NewStone = CurrStone
+                NewIron = CurrIron
+                WoodFlag=false
+                StoneFlag=false
+                IronFlag=false
+                PassWood = parseInt(ThisCell.value.split(",")[2])
+                PassStone = parseInt(ThisCell.value.split(",")[4])
+                PassIron = parseInt(ThisCell.value.split(",")[6])
+                if(CurrWood>=1&&PassWood<1){NewWood = CurrWood-1;WoodFlag=true}
+                if(CurrStone>=1&&PassStone<1){NewStone = CurrStone-1;StoneFlag=true}
+                if(CurrIron>=1&&PassIron<1){NewIron = CurrIron-1;IronFlag=true}
+
+                ConveyorBeltArray[i].value = ConveyorBeltArray[i].value.split(",")[0]+","+((ConveyorBeltArray[i].value.split(",")[1]))+","+(NewWood)+","+((ConveyorBeltArray[i].value.split(",")[3]))+","+(NewStone)+","+((ConveyorBeltArray[i].value.split(",")[5]))+","+(NewIron)
+                CurrWood = parseInt(ThisCell.value.split(",")[2])
+                CurrStone = parseInt(ThisCell.value.split(",")[4])
+                CurrIron = parseInt(ThisCell.value.split(",")[6])
+                NewWood = CurrWood
+                NewStone = CurrStone
+                NewIron = CurrIron
+                if(CurrWood<1&&WoodFlag){NewWood = CurrWood+1}
+                if(CurrStone<1&&StoneFlag){NewStone = CurrStone+1}
+                if(CurrIron<1&&IronFlag){NewIron = CurrIron+1}
+                ThisCell.value = ThisCell.value.split(",")[0]+","+ThisCell.value.split(",")[1]+","+NewWood+","+ThisCell.value.split(",")[3]+","+NewStone+","+ThisCell.value.split(",")[5]+","+NewIron
+            
+            } 
+            ///Chests
+            //console.log(Direction == DirectionArray[CoordinateArray.indexOf(CoordinateArray[j])],document.getElementById("CellID,"+(parseInt(CBCoordX)+CoordinateArray[j][0])+","+(parseInt(CBCoordY)+CoordinateArray[j][1])).innerHTML == "&amp;",parseInt(Materials) >= 1)
+            if(Direction == DirectionArray[CoordinateArray.indexOf(CoordinateArray[j])] && document.getElementById("CellID,"+(parseInt(CBCoordX)+CoordinateArray[j][0])+","+(parseInt(CBCoordY)+CoordinateArray[j][1])).innerHTML == "&amp;" && parseInt(Materials) >= 1){
+                
+                ThisCell = document.getElementById("CellID,"+(parseInt(CBCoordX)+CoordinateArray[j][0])+","+(parseInt(CBCoordY)+CoordinateArray[j][1]))
+                CurrWood = parseInt(ConveyorBeltArray[i].value.split(",")[2])
+                CurrStone = parseInt(ConveyorBeltArray[i].value.split(",")[4])
+                CurrIron = parseInt(ConveyorBeltArray[i].value.split(",")[6])
+                NewWood = CurrWood
+                NewStone = CurrStone
+                NewIron = CurrIron
+                WoodFlag=false
+                StoneFlag=false
+                IronFlag=false
+                PassWood = parseInt(ThisCell.value.split(",")[2])
+                PassStone = parseInt(ThisCell.value.split(",")[4])
+                PassIron = parseInt(ThisCell.value.split(",")[6])
+                if(CurrWood>=1&&PassWood<1){NewWood = CurrWood-1;WoodFlag=true}
+                if(CurrStone>=1&&PassStone<1){NewStone = CurrStone-1;StoneFlag=true}
+                if(CurrIron>=1&&PassIron<1){NewIron = CurrIron-1;IronFlag=true}
+
+                ConveyorBeltArray[i].value = ConveyorBeltArray[i].value.split(",")[0]+","+((ConveyorBeltArray[i].value.split(",")[1]))+","+(NewWood)+","+((ConveyorBeltArray[i].value.split(",")[3]))+","+(NewStone)+","+((ConveyorBeltArray[i].value.split(",")[5]))+","+(NewIron)
+                CurrWood = parseInt(ThisCell.value.split(",")[2])
+                CurrStone = parseInt(ThisCell.value.split(",")[4])
+                CurrIron = parseInt(ThisCell.value.split(",")[6])
+                NewWood = CurrWood
+                NewStone = CurrStone
+                NewIron = CurrIron
+                if(CurrWood<1&&WoodFlag){NewWood = CurrWood+1}
+                if(CurrStone<1&&StoneFlag){NewStone = CurrStone+1}
+                if(CurrIron<1&&IronFlag){NewIron = CurrIron+1}
+                ThisCell.value = ThisCell.value.split(",")[0]+","+ThisCell.value.split(",")[1]+","+NewWood+","+ThisCell.value.split(",")[3]+","+NewStone+","+ThisCell.value.split(",")[5]+","+NewIron
+            }
+        }
+
+
+
+    }
+    for(let i=0;i<ChestArray.length;i++){
+        //console.log(parseInt(ChestArray.length))
+        WoodValue = parseInt(document.getElementById("Wood").value)+parseInt(ChestArray[i].value.split(",")[2])
+        StoneValue = parseInt(document.getElementById("Stone").value)+parseInt(ChestArray[i].value.split(",")[4])
+        IronValue = parseInt(document.getElementById("Iron").value)+parseInt(ChestArray[i].value.split(",")[6])
+        //console.log(WoodValue,StoneValue,IronValue)
+        document.getElementById("Wood").value = WoodValue
+        document.getElementById("Stone").value = StoneValue
+        document.getElementById("Iron").value = IronValue
+        ChestArray[i].value = "Chest,Wood,0,Stone,0,Iron,0"
+        document.getElementById("Wood").innerHTML = "Wood: "+WoodValue
+        document.getElementById("Stone").innerHTML = "Stone: "+StoneValue
+        document.getElementById("Iron").innerHTML = "Iron: "+IronValue
+        //adapt this to instead of using P it checks [0] to see what material is being moved
+
+    }
+
+    for(let i=0;i<EntityArray.length;i++){
+        
+        RandomX = Math.floor(Math.random() * 3)-1
+        RandomY = Math.floor(Math.random() * 3)-1
+       // console.log(document.getElementById("CellID,"+(EntityArray[i].ThisCellX+RandomX+2)+","+(EntityArray[i].ThisCellY + RandomY+2)).innerHTML)
+        //console.log((EntityArray[i].ThisCellX+RandomX+2)+","+(EntityArray[i].ThisCellY+RandomY+2))
+        if(document.getElementById("CellID,"+(EntityArray[i].ThisCellX+RandomX+2)+","+(EntityArray[i].ThisCellY + RandomY+2)).innerHTML == '~' && EntityArray[i].Species == "Sheep"){
+        EntityArray[i].ThisCellX += RandomX
+        EntityArray[i].ThisCellY += RandomY
+        EntityArray[i].Move()
+        }if(EntityArray[i].Species == "Civilian"){
+            if(document.getElementById("CellID,"+(EntityArray[i].ThisCellX+RandomX+2)+","+(EntityArray[i].ThisCellY + RandomY+2)).innerHTML == '"' || 
+            document.getElementById("CellID,"+(EntityArray[i].ThisCellX+RandomX+2)+","+(EntityArray[i].ThisCellY + RandomY+2)).innerHTML == '=' || 
+            document.getElementById("CellID,"+(EntityArray[i].ThisCellX+RandomX+2)+","+(EntityArray[i].ThisCellY + RandomY+2)).innerHTML == '%'){
+                EntityArray[i].ThisCellX += RandomX
+                EntityArray[i].ThisCellY += RandomY
+                EntityArray[i].Move()
+            }
+        
+        }
+        //TestEntity.Move()
+    }
+    
+
+    
+}, 1000);
+
+function LoadCells(Value){
+    container = document.getElementById("container")
+    MineContainer = document.getElementById("MineContainer")
+    if(Value >= 0){
+        //console.log(container.style.zIndex)
+        //console.log(MineContainer.style.zIndex)
+        //console.log(container.style.position)
+        container.style.zIndex = 0
+        MineContainer.style.zIndex = -1
+        //MineContainer.style.opacity = 0
+    }else if(Value <= -1){
+        //container.style.zIndex = 10
+        MineContainer.style.zIndex = 0
+        container.style.zIndex = -1
+    }
+}
+
+function zoom(event) {
+    event.preventDefault();
+    if(scale == 0 || scale == -1){
+        scale += event.deltaY*0.01
+    }
+    if(scale >= 1){
+        scale = 0
+    }
+    if(scale <= -1){
+        scale = -1
+    }
+    
+    //console.log(scale)
+    if(scale == 0){
+        LoadCells(0)
+        while(MineClickedCell[0]){
+            MineClickedCell[0].style.backgroundColor = MineClickedCell[1]
+            document.body.removeChild(MineClickedCell[2])
+            MineClickedCell.pop(0)
+            MineClickedCell.pop(0)
+            MineClickedCell.pop(0)
+        }
+    }
+    else if(scale == -1 && MineOne.length > 0){
+        LoadCells(-1)
+        while(ClickedCell[0]){
+            ClickedCell[0].style.backgroundColor = ClickedCell[1]
+            document.body.removeChild(ClickedCell[2])
+            ClickedCell.pop(0)
+            ClickedCell.pop(0)
+            ClickedCell.pop(0)
+        }
+        
+    }
+    else if(scale == -1 && MineOne.length == 0){
+        MineContainer = document.createElement("div")
+        MineContainer.id = "MineContainer"
+        MineContainer.style.position = "absolute"
+        MineContainer.onwheel = zoom;
+        document.body.appendChild(MineContainer)
+        proceduralGenMines()
+        LoadCells(-1)
+    }
+  
+}
+
+let scale = 0
+
+container.onwheel = zoom;
+
+
+class Entity{
+    constructor(SpawnCellX,SpawnCellY,Species){
+        this.ThisCellX = SpawnCellX
+        this.ThisCellY = SpawnCellY
+        this.Species = Species
+        this.entity = document.createElement("div")
+    }
+    Move(){
+        //cell.id = "CellID,"+i+","+j
+        if((this.ThisCellX)*20>0&&(this.ThisCellX)*20<window.innerWidth){
+            this.entity.style.left = (this.ThisCellX)*20 + "px"
+        }
+        if((this.ThisCellY)*20>0&&(this.ThisCellY)*20<window.innerHeight){
+            this.entity.style.top = (this.ThisCellY)*20 + "px"
+        }  
+            
+    }
+    Spawn(){
+        let container = document.getElementById("container")
+        
+        this.entity.className = "Entity"
+        if(this.Species == "Sheep"){
+            this.entity.innerHTML = "E"
+            this.entity.onclick = function EntityOnClick(){
+                console.log(this)
+            }
+        }
+        else if(this.Species == "Civilian"){
+            this.entity.innerHTML = "C"
+            this.entity.style.backgroundColor = "rgb(204, 102, 0)"
+            this.entity.onclick = function EntityOnClick(){
+                console.log(this)
+            }
+        }
+        
+        
+
+        container.appendChild(this.entity)
+    }
+}
+TestEntity = new Entity(20,20,"Sheep")
+TestEntity.Spawn()
+TestEntity.Move()
+EntityArray = []
+EntityArray.push(TestEntity)
+
+function SpawnSheep(){
+    SpawnEntity = "Sheep"
+}
+function SpawnCivilian(){
+    SpawnEntity = "Civilian"
+}
+</script>
+</body>
+
+
+TODO:
+Destroy stuff, circumvent the erin deadlock and 3d like dwarf Fortress
+remove the ability to go side to side and instead go all in on down into mines and up to have elevated buildings 
+add ways of upgrading the world itself with Research
+by researching things using materials you unlock the ability to build new things that attract NPCs, animals 
+and you can upgrade the sort of materials that get mined 
+Make cows Rs
